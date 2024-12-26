@@ -36,7 +36,7 @@ FDCDS1 				= $02
   FILEBLK=$02EE	  ; OSFILE control block
 .elseif TARGETOS>2
   .ifdef HD_SCSI_VFS
-  	VERBASE=$170		; Master VFS
+
   .else
   	VERBASE=$150		; Master
   .endif
@@ -44,7 +44,7 @@ FDCDS1 				= $02
 .if .def(HD_SCSI_XDFS)
   	HDDBASE=$FC44		; Hard drive controller
 .elseif .def(HD_SCSI_VFS)
-  	HDDBASE=$FE80		; VFS controller
+
 
 .else
   	HDDBASE=$FC40		; Hard drive controller

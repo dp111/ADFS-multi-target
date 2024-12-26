@@ -11,6 +11,9 @@ HD_SCSI_VFS	:=	1
 USE65C12	:=	1		; use 65C12 opcodes
 		.pc02		; USE65C12
 
+HDDBASE=$FE80		; VFS controller
+VERBASE=$170		; Master VFS
+
 VFS_FLOPPY_VESTIGE	:= 1
 
 .endif

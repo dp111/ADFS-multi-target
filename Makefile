@@ -24,7 +24,8 @@ ROMNAMES= 	masIDE \
 		bbcIDE_hog_DC \
 		elkSCSI_hog \
 		elkSCSI_mince \
-		elkIDE_hog
+		elkIDE_hog \
+		masVFS1M
 
 
 ROMS=$(addsuffix .rom, $(addprefix $(BUILDDIR)/, $(ROMNAMES)))

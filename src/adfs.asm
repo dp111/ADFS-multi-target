@@ -447,7 +447,7 @@ L8083:		jsr	SCSI_GetStatus			; Get SCSI status
 		and	#$02				; BUSY?
 		bne	L8083				; Loop until not BUSY
 		pla					; Get data value back
-  .ifdef HD_SCSI_VFS
+ .if .def(HD_SCSI_VFS) && (!.def(HD_SCSI_VFS_NO_INVERT))
 		eor	#$FF
   .endif
 		sta	SCSI_DATA			; Write to SCSI data
@@ -843,7 +843,7 @@ SCSI_send_byteA:
 		jsr	SCSI_WaitforReq			; Wait until SCSI ready
 		bvs	L8349				; Wrong phase i.e. SCSI wants to do data in not out!
 							; WRONG?: SCSI not responding, drop return and return result=UNKNOWN
-.ifdef HD_SCSI_VFS
+.if .def(HD_SCSI_VFS) && (!.def(HD_SCSI_VFS_NO_INVERT))
 		eor	#$FF
 .endif
 		sta	SCSI_DATA
@@ -4873,11 +4873,11 @@ HD_InitDetect:
 		bne	L9A7E
 		lda	#$A5
 L9A75:		
-.ifdef HD_SCSI_VFS
+.if .def(HD_SCSI_VFS) && (!.def(HD_SCSI_VFS_NO_INVERT))
 		eor	#$FF
 .endif
 		sta	SCSI_DATA
-.ifdef HD_SCSI_VFS
+.if .def(HD_SCSI_VFS) && (!.def(HD_SCSI_VFS_NO_INVERT))
 		eor	#$FF
 .endif
 .ifdef USE65C12
