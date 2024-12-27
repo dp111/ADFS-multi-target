@@ -56,6 +56,16 @@ VFS_N900_MouseBounds = $0900 ;16:16 XY bounds
 VFS_N900 =       $0900      ;Page 9 is used by VFS during mouse/video stuff, it gets backed up to private workspace
 VFS_N904_MousePos = $0904   ;16:16 XY Mouse position
 VFS_N908_MODESAVE = $0908
+;909
+;90a
+;90b
+;90c
+;90d
+VFS_N90E_MousePos2 = $090e  ;16:16 XY Mouse position???
+VFS_N912_MouseX =$0912 ; 16 bit X 
+VFS_N914_MouseX2 =$0914 ; 16 bit X 
+VFS_N916_MouseY =$0916 ; 16 bit Y
+
 VFS_N924_PTR_Q = $0924
 VFS_N926_ZPSAVE = $0926
 VFS_N932_ACCON_SAVE = $0932
@@ -314,7 +324,7 @@ VFS_PrintNopTermString:
          jsr     getB6CmdCharInc
 @lp:     jsr     getB6CmdCharInc
          bmi     @retPTR
-         jsr     $8c7a
+         jsr     L8C7A
          jmp     @lp
 
 @retPTR: jmp     ($00b6)
@@ -582,8 +592,7 @@ starCHAPTER:
          jsr     swap7PWSP_373_N933
          jsr     ReloadFSMandDIR_ThenBRK
          .byte   $ff
-         .byte   "Bad parameter"
-         .byte   $00
+         .asciiz  "Bad parameter"
 
 @setTermCharAndSend:
          sta     WKSP_VFS_E00_TXTBUF+1,X
@@ -707,8 +716,7 @@ FCMDRET_CheckForOpen:
          jsr     swap7PWSP_373_N933
          jsr     ReloadFSMandDIR_ThenBRK
          .byte   $93
-         .byte   "Door open"
-         .byte   $00
+         .asciiz  "Door open"
 
 ;*******************************************************************************
 ;* *STEP <mode>                                                                *
@@ -1079,7 +1087,7 @@ VFSstarMOUSE:
          lda     #$00
          sta     sheila_USRVIA_ddrb
          lda     #$80
-         sta     VFS_N904_MousePos
+         sta     VFS_N904_MousePos          ; centre mouse pointer 640x512
          lda     #$02
          sta     VFS_N904_MousePos+1
          lda     #$00
@@ -1126,7 +1134,7 @@ VFSstarPOINTER:
          jsr     LB2ED
          ldy     VFS_N904_MousePos
          dey
-         sty     $090e
+         sty     VFS_N90E_MousePos2
          dec     $0909
 LB021:   rts
 
@@ -1146,16 +1154,16 @@ LB022:   lda     $0909
          rts
 
 LB045:   lda     VFS_N904_MousePos
-         cmp     $090e
+         cmp     VFS_N90E_MousePos2
          bne     @LB065
          lda     VFS_N904_MousePos+2
-         cmp     $0910
+         cmp     VFS_N90E_MousePos2+2
          bne     @LB065
          lda     VFS_N904_MousePos+1
-         cmp     $090f
+         cmp     VFS_N90E_MousePos2+1
          bne     @LB065
          lda     VFS_N904_MousePos+3
-         cmp     $0911
+         cmp     VFS_N90E_MousePos2+3
          beq     LB021
 @LB065:  lda     sheila_ACCON
          sta     VFS_N932_ACCON_SAVE
@@ -1165,13 +1173,13 @@ LB045:   lda     VFS_N904_MousePos
          ora     #$04
 @LB073:  sta     sheila_ACCON
          lda     VFS_N904_MousePos+2
-         sta     $0910
+         sta     VFS_N90E_MousePos2+2
          lda     VFS_N904_MousePos+3
-         sta     $0911
+         sta     VFS_N90E_MousePos2+3
          lda     VFS_N904_MousePos
-         sta     $090e
+         sta     VFS_N90E_MousePos2
          lda     VFS_N904_MousePos+1
-         sta     $090f
+         sta     VFS_N90E_MousePos2+1
          cmp     VFS_N900_MouseBounds+1
          bcc     @LB0A6
          beq     @LB097
@@ -1205,6 +1213,7 @@ LB045:   lda     VFS_N904_MousePos
 @LB0C8:  cmp     $090b
          beq     @LB0D0
          jsr     LB2ED
+
 @LB0D0:  ldy     VFS_N904_MousePos
          lda     VFS_N908_MODESAVE
          cmp     #$02
@@ -1218,33 +1227,36 @@ LB045:   lda     VFS_N904_MousePos
          dey
          dey
          dey
+
 @LB0E9:  ldx     $090b
          tya
          sec
-         sbc     LB9A0,X
-         sta     $0912
+         sbc     LB9A0,X        ; 20,24, 4, 40
+         sta     VFS_N912_MouseX
          lda     VFS_N904_MousePos+1
          sbc     #$00
-         sta     $0913
+         sta     VFS_N912_MouseX+1
+
          lda     LB9A4,X
          clc
          adc     VFS_N904_MousePos+2
-         sta     $0916
+         sta     VFS_N916_MouseY
          lda     VFS_N904_MousePos+3
          adc     #$00
-         sta     $0917
+         sta     VFS_N916_MouseY+1
+
          jsr     LB44C
          ldy     ZP_MOS_CURROM
          lda     SYSVARS_DF0_PWSKPTAB,Y
          inc     A
-         sta     ZP_EXTRA_TMPPTR+1
+         sta     ZP_EXTRA_BASE+1
          lda     LB990,X
          sta     ZP_EXTRA_BASE
          jsr     LB240
-         lda     $0912
-         sta     $0914
-         lda     $0913
-         sta     $0915
+         lda     VFS_N912_MouseX
+         sta     VFS_N914_MouseX2
+         lda     VFS_N912_MouseX+1
+         sta     VFS_N914_MouseX2+1
          lda     $8d
          pha
          lda     $8c
@@ -1255,31 +1267,32 @@ LB045:   lda     VFS_N904_MousePos
          pha
          ldx     #$00
          stx     $8a
+
 @LB13D:  ldy     #$00
          sty     $89
          lda     $8d
          bmi     @LB1A5
          cmp     #$30
          bcc     @LB199
-         lda     $0913
+         lda     VFS_N912_MouseX+1
          bmi     @LB1A5
          cmp     #$05
          bcc     @LB155
          jmp     @LB1D4
 
 @LB155:  ldy     $89
-         lda     ($8c),Y
+         lda     ($8c),Y            ; get screen byte
          ldy     $8a
-         sta     ($86),Y
-         inc     ZP_EXTRA_TMPPTR+1
-         lda     (ZP_EXTRA_BASE),Y
-         dec     ZP_EXTRA_TMPPTR+1
+         sta     ($86),Y            ; store old memory location
+         inc     ZP_EXTRA_BASE+1
+         lda     (ZP_EXTRA_BASE),Y ; get sprite byte mask
+         dec     ZP_EXTRA_BASE+1
          ldy     $89
-         and     ($8c),Y
+         and     ($8c),Y            ; mask pixels
          ldy     $8a
-         ora     (ZP_EXTRA_BASE),Y
+         ora     (ZP_EXTRA_BASE),Y  ; orr in spite
          ldy     $89
-         sta     ($8c),Y
+         sta     ($8c),Y            ; save back to screen 
          inc     $8a
          lda     $8a
          and     #$0f
@@ -1290,14 +1303,15 @@ LB045:   lda     VFS_N904_MousePos
          adc     $8c
          and     #$07
          bne     @LB155
+
 @LB182:  ldy     VFS_N908_MODESAVE
          lda     $8c
          and     #$f8
          clc
-         adc     LB98A,Y
+         adc     LB98A,Y ; Always 128   ( 640)
          sta     $8c
          lda     $8d
-         adc     LB98D,Y
+         adc     LB98D,Y ; Always 2
          sta     $8d
          jmp     @LB13D
 
@@ -1313,12 +1327,13 @@ LB045:   lda     VFS_N904_MousePos
          clc
          adc     #$10
          sta     $8a
-@LB1AE:  lda     $0912
+
+@LB1AE:  lda     VFS_N912_MouseX
          clc
          adc     #$10
-         sta     $0912
+         sta     VFS_N912_MouseX
          bcc     @LB1BC
-         inc     $0913
+         inc     VFS_N912_MouseX+1
 @LB1BC:  pla
          clc
          adc     #$08
@@ -1360,13 +1375,13 @@ swapPage9AndPrivWkspP3:
          phy
          lda     ZP_EXTRA_BASE
          pha
-         lda     ZP_EXTRA_TMPPTR+1
+         lda     ZP_EXTRA_BASE+1
          pha
          ldx     ZP_MOS_CURROM
          lda     SYSVARS_DF0_PWSKPTAB,X
          clc
          adc     #$03       ;save page 900 to 3rd page of private workspace
-         sta     ZP_EXTRA_TMPPTR+1
+         sta     ZP_EXTRA_BASE+1
          lda     #$40
          sta     ZP_EXTRA_BASE
          ldy     #$32
@@ -1378,7 +1393,7 @@ swapPage9AndPrivWkspP3:
          dey
          bpl     @lp
          pla
-         sta     ZP_EXTRA_TMPPTR+1
+         sta     ZP_EXTRA_BASE+1
          pla
          sta     ZP_EXTRA_BASE
          ply
@@ -1441,19 +1456,19 @@ LB240:   ldy     ZP_MOS_CURROM
          lda     ZP_EXTR_PTR_Q
          and     #$f8
          clc
-         adc     LB98A,Y
+         adc     LB98A,Y      ; always 128 ( 640)
          sta     ZP_EXTR_PTR_Q
          lda     ZP_EXTR_PTR_Q+1
-         adc     LB98D,Y
+         adc     LB98D,Y     ; always 2
          sta     ZP_EXTR_PTR_Q+1
          jmp     @LB258
 
-@LB29F:  lda     $0914
+@LB29F:  lda     VFS_N914_MouseX2
          clc
          adc     #$10
-         sta     $0914
+         sta     VFS_N914_MouseX2
          bcc     @LB2AD
-         inc     $0915
+         inc     VFS_N914_MouseX2+1
 @LB2AD:  pla
          clc
          adc     #$08
@@ -1487,10 +1502,10 @@ LB240:   ldy     ZP_MOS_CURROM
 
 LB2DD:   jsr     RestoreZpAndPage9
          jsr     ReloadFSMandDIR_ThenBRK
-         lda     $6142
-         stz     $20
-         eor     $444f
-         eor     $00
+
+         .byte $ad
+         .asciiz "Bad MODE"
+
 LB2ED:   sta     $090b
          asl     A
          asl     A
@@ -1504,15 +1519,15 @@ LB2ED:   sta     $090b
          bcs     LB2DD
          pha
          clc
-         adc     #$b9
-         sta     ZP_EXTRA_TMPPTR+1
-         lda     #$a8
+         adc     #<LB9A8                       ; mouse symble table
+         sta     ZP_EXTRA_BASE+1
+         lda     #>LB9A8
          sta     ZP_EXTRA_BASE
          pla
          clc
-         adc     #$bc
+         adc     #<LBCA8
          sta     $87
-         lda     #$a8
+         lda     #>LBCA8
          sta     $86
          ldx     ZP_MOS_CURROM
          lda     SYSVARS_DF0_PWSKPTAB,X
@@ -1688,19 +1703,19 @@ LB2ED:   sta     $090b
          bpl     @LB442
          jmp     @LB3AF
 
-LB44C:   lda     $0917
+LB44C:   lda     VFS_N916_MouseY+1
          sta     $8c
-         lda     $0916
+         lda     VFS_N916_MouseY
          lsr     $8c
          ror     A
          lsr     $8c
          ror     A
-         sta     $0916
+         sta     VFS_N916_MouseY
          lsr     A
          lsr     A
          lsr     A
          tax
-         lda     $0913
+         lda     VFS_N912_MouseX+1
          bpl     @LB467
          inx
 @LB467:  lda     $8c
@@ -1709,20 +1724,20 @@ LB44C:   lda     $0917
          clc
          adc     #$20
          tax
-         lda     $0916
+         lda     VFS_N916_MouseY
          eor     #$07
-         sta     $0916
-         dec     $0916
+         sta     VFS_N916_MouseY
+         dec     VFS_N916_MouseY
 @LB47B:  lda     LB965,X
          sta     $8d
          lda     LB943,X
          sta     $8c
-         lda     $0913
+         lda     VFS_N912_MouseX+1
          bpl     @LB48D
          clc
          adc     #$05
 @LB48D:  sta     $88
-         lda     $0912
+         lda     VFS_N912_MouseX
          lsr     $88
          ror     A
          and     #$f8
@@ -1732,12 +1747,12 @@ LB44C:   lda     $0917
          lda     $88
          adc     $8d
          sta     $8d
-         lda     $0916
+         lda     VFS_N916_MouseY
          and     #$07
          eor     #$07
          ora     $8c
          sta     $8c
-         lda     $0912
+         lda     VFS_N912_MouseX
          lsr     A
          lsr     A
          and     #$03
@@ -1842,9 +1857,9 @@ LB44C:   lda     $0917
          and     sheila_USRVIA_ier-1
          and     #$18
          bne     @LB567
-         lda     #$b5
+         lda     #>(LB567-1)
          pha
-         lda     #$66
+         lda     #<(LB567-1)
          pha
          php
          lda     $fc
@@ -2166,7 +2181,7 @@ VFSstarTMAX:
          jsr     setMouseBoundsY ;save second param at offset Y=2
          pla                ;unstack first param
          plx
-         dec     $090e      ;set some sort of flag?!
+         dec     VFS_N90E_MousePos2      ;set some sort of flag?!
          ldy     #$00       ;save at offset 0
 setMouseBoundsY:
          and     #$fc       ;clear bottom bits of X
@@ -2347,6 +2362,7 @@ VFS_FSC3_STARCMD:
          .byte   %00010000
          .byte   %00010000
          .byte   %00010000
+
 LB943:   .byte   %10000000
          .byte   %00000000
          .byte   %10000000
@@ -2381,6 +2397,7 @@ LB943:   .byte   %10000000
          .byte   %00000000
          .byte   %10000000
          .byte   %00000000
+
 LB965:   .byte   %01111101
          .byte   %01111011
          .byte   %01111000
@@ -2418,12 +2435,14 @@ LB965:   .byte   %01111101
          .byte   %00000001
          .byte   %00000010
          .byte   %00000100
-LB98A:   .byte   %10000000
+
+LB98A:   .byte   %10000000  ; this and the next table are always 640 for MODE 0 1 2 
          .byte   %10000000
          .byte   %10000000
 LB98D:   .byte   %00000010
          .byte   %00000010
          .byte   %00000010
+
 LB990:   .byte   %00000000
          .byte   %01000000
          .byte   %10000000
@@ -2440,14 +2459,19 @@ LB990:   .byte   %00000000
          .byte   %00000001
          .byte   %00000001
          .byte   %00000001
-LB9A0:   .byte   %00010100
-         .byte   %00011000
-         .byte   %00000100
-         .byte   %00101000
-LB9A4:   .byte   %00011100
-         .byte   %00010100
-         .byte   %00000100
-         .byte   %00000100
+
+LB9A0:   .byte   %00010100 ;20
+         .byte   %00011000 ;24
+         .byte   %00000100 ;4
+         .byte   %00101000 ;40
+
+LB9A4:   .byte   %00011100 ;28
+         .byte   %00010100 ;20
+         .byte   %00000100 ;4
+         .byte   %00000100 ;4
+LB9A8:                          ; 3 tables of 256 bytes one for each mode in groups of 64 ?
+                                ; pointer sprite ?
+                                ; cross, magnify glass, north west arrow, North east arrow
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
@@ -2512,6 +2536,7 @@ LB9A4:   .byte   %00011100
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
+
          .byte   %00000000
          .byte   %00000000
          .byte   %00000011
@@ -2577,6 +2602,7 @@ LB9A4:   .byte   %00011100
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
+
          .byte   %00110000
          .byte   %00111100
          .byte   %00111111
@@ -2641,6 +2667,7 @@ LB9A4:   .byte   %00011100
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
+
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
@@ -2705,6 +2732,7 @@ LB9A4:   .byte   %00011100
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
+
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
@@ -2769,6 +2797,7 @@ LB9A4:   .byte   %00011100
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
+
          .byte   %00000000
          .byte   %00000001
          .byte   %00000001
@@ -2833,6 +2862,7 @@ LB9A4:   .byte   %00011100
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
+
          .byte   %00000100
          .byte   %00000110
          .byte   %00000111
@@ -2897,6 +2927,7 @@ LB9A4:   .byte   %00011100
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
+
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
@@ -2961,6 +2992,7 @@ LB9A4:   .byte   %00011100
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
+
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
@@ -3025,6 +3057,7 @@ LB9A4:   .byte   %00011100
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
+
          .byte   %00000000
          .byte   %00000000
          .byte   %00000001
@@ -3089,6 +3122,7 @@ LB9A4:   .byte   %00011100
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
+
          .byte   %00000001
          .byte   %00000001
          .byte   %00000001
@@ -3153,6 +3187,7 @@ LB9A4:   .byte   %00011100
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
+        
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
@@ -3216,6 +3251,8 @@ LB9A4:   .byte   %00011100
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
+
+LBCA8:         
          .byte   %11111100
          .byte   %11111100
          .byte   %11111100
@@ -3281,6 +3318,7 @@ LB9A4:   .byte   %00011100
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
+
          .byte   %11111100
          .byte   %11110000
          .byte   %11110000
@@ -3346,6 +3384,7 @@ LB9A4:   .byte   %00011100
          .byte   %11111111
          .byte   %00001111
          .byte   %00000011
+
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
@@ -3411,6 +3450,7 @@ LB9A4:   .byte   %00011100
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
+
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
@@ -3472,6 +3512,7 @@ LB9A4:   .byte   %00011100
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
+
          .byte   %11101110
          .byte   %11101110
          .byte   %11101110
@@ -3537,6 +3578,7 @@ LB9A4:   .byte   %00011100
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
+
          .byte   %11101110
          .byte   %11001100
          .byte   %11001100
@@ -3600,6 +3642,7 @@ LB9A4:   .byte   %00011100
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
+
          .byte   %00110011
          .byte   %00010001
          .byte   %00000000
@@ -3665,6 +3708,7 @@ LB9A4:   .byte   %00011100
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
+
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
@@ -3729,6 +3773,7 @@ LB9A4:   .byte   %00011100
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
+
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
@@ -3793,6 +3838,7 @@ LB9A4:   .byte   %00011100
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
+
          .byte   %10101010
          .byte   %10101010
          .byte   %00000000
@@ -3856,6 +3902,7 @@ LB9A4:   .byte   %00011100
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
+
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
@@ -3921,6 +3968,7 @@ LB9A4:   .byte   %00011100
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
+         
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
@@ -3985,6 +4033,7 @@ LB9A4:   .byte   %00011100
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
+; end of sprite tables
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111

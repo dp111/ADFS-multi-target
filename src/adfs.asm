@@ -2522,6 +2522,7 @@ L8C74:		lda	($B6),Y				; Copy length/exec/load
 		sta	WKSP_ADFS_215_DSKOPSAV_RET,X			; to workspace
 		dey
 		dex
+L8C7A:		
 		bpl	L8C74				; Loop for 12 bytes
 		ldy	#$0D
 		ldx	#$0B
