@@ -54,7 +54,7 @@
 	.ifdef HD_SCSI_VFS
 		.export SCSI_WaitforReq_noCLI
 	.endif
-	
+
 ;; TODO:
 ; - version string etc for FAST IDE
 
@@ -189,7 +189,7 @@ L8000:		.byte	$00,$00,$00			; No language entry
 .endif
 		.byte	((VERSION & $F0) >> 4)+'0'
 		.byte	(VERSION & $0F)+'0'
-.ifdef ELK_MINCE_COMPACT		
+.ifdef ELK_MINCE_COMPACT
 		.byte	'E'
 .endif
 L8017:		.byte	$00				; Copyright string
@@ -447,9 +447,13 @@ L8083:		jsr	SCSI_GetStatus			; Get SCSI status
 		and	#$02				; BUSY?
 		bne	L8083				; Loop until not BUSY
 		pla					; Get data value back
- .if .def(HD_SCSI_VFS) && (!.def(HD_SCSI_VFS_NO_INVERT))
+ .if .def(HD_SCSI_VFS)
+ 	.if  (!.def(HD_SCSI_VFS_NO_INVERT))
 		eor	#$FF
-  .endif
+ 	.else
+		eor #0
+	.endif
+ .endif
 		sta	SCSI_DATA			; Write to SCSI data
 		sta	SCSI_SELECT			; Write to SCSI select to strobe it
 L8091:		jsr	SCSI_GetStatus			; Get SCSI status
@@ -662,7 +666,7 @@ GenerateError:						; L82BD
 		cmp	#$6F				; Floppy error &2F (Abort)?
 		bne	L82DC				; If no, report a disk error
 ;;
-.if (TARGETOS > 1) 
+.if (TARGETOS > 1)
 ErrorEscapeACKInvalidReloadFSM:
 		jsr	InvalidateFSMandDIR		; Invalidate FSM and DIR in memory
 ErrorEscapeACKReloadFSM:
@@ -682,7 +686,7 @@ ErrorEscapeACKInvalidReloadFSM:
 		.byte	"Escape"			; REPORT="Escape"
 		.byte	$00
 ;;
-L82DC:		
+L82DC:
 .ifdef	HD_SCSI_VFS
 		cmp	#$02
 		bne	L82F4				; No, try other errors
@@ -843,9 +847,13 @@ SCSI_send_byteA:
 		jsr	SCSI_WaitforReq			; Wait until SCSI ready
 		bvs	L8349				; Wrong phase i.e. SCSI wants to do data in not out!
 							; WRONG?: SCSI not responding, drop return and return result=UNKNOWN
-.if .def(HD_SCSI_VFS) && (!.def(HD_SCSI_VFS_NO_INVERT))
+ .if .def(HD_SCSI_VFS)
+ 	.if  (!.def(HD_SCSI_VFS_NO_INVERT))
 		eor	#$FF
-.endif
+ 	.else
+		eor #0
+	.endif
+ .endif
 		sta	SCSI_DATA
 		lda	#$00				; Return Ok
 		rts
@@ -856,7 +864,7 @@ L8349:		pla					; Drop return address
 .ifdef HD_MMC_HOG
 SCSI_WaitforReq:		;; TODO - get rid
 		rts
-.elseif TARGETOS <> 0 
+.elseif TARGETOS <> 0
 	.if (!.def(IDE_HOG_TMP)) && (!.def(IDE_DC))
 		.byte	0,0,0,0,0
 	.endif
@@ -984,7 +992,7 @@ L8380:		iny
 		bcs	L839B				; &30+, jump to check if channel number
 L8395:		jsr	HexNumberError100Y		; Insert disk error as hex number
 		jmp	L83A2
-L839B:		
+L839B:
   .ifdef HD_SCSI_XDFS
 		cmp	#'9'+1
   .else
@@ -1114,7 +1122,7 @@ strr_OnChannel:	.byte	" lennahc no "
 
 ; Insert hex number into error block
 ; ----------------------------------
-HexNumberError100Y:		
+HexNumberError100Y:
 		pha
 		lsr	A
 		lsr	A
@@ -1164,7 +1172,7 @@ DecNumberError100Y:
 @coldone:	pla
 		rts
 ;;
-InvalidateFSMandDIR:		
+InvalidateFSMandDIR:
 		ldx	#$0C
 		lda	#$FF
 L849E:		sta	WKSP_ADFS_22C_CSD - 1,X
@@ -1217,7 +1225,7 @@ strr_YES:	.byte	$0D, "SEY"
 str_Hugo:	.byte	$00, "Hugo"
 
 .ifdef HD_SCSI_VFS
-L84E1:		
+L84E1:
 L8631:		rts
 .else
 
@@ -2033,7 +2041,7 @@ L89D8:		pha
 .else
 		lda	#$FF
 		sta	WKSP_ADFS_22F
-.endif		
+.endif
 		ldx	#<L8831				; Point to 'load FSM' control block
 		ldy	#>L8831
 		jsr	L82AE				; Load FSM
@@ -3465,7 +3473,7 @@ L9232:		lda	$B6
 		jsr	L84E1
 		jsr	L8F91
 		jmp	L89D5
-.else	
+.else
 	;; TODO:VFS:REMOVE
 L9085	= $B00B
 L910A	= $B00B
@@ -3473,7 +3481,7 @@ L9127	= $B00B
 L9131	= $B00B
 L921B	= $B00B
 
-.endif ; ndef VFS		
+.endif ; ndef VFS
 ;;
 ;;
 ;; OSFILE
@@ -4872,14 +4880,22 @@ HD_InitDetect:
 		jsr	L9A75
 		bne	L9A7E
 		lda	#$A5
-L9A75:		
-.if .def(HD_SCSI_VFS) && (!.def(HD_SCSI_VFS_NO_INVERT))
+L9A75:
+ .if .def(HD_SCSI_VFS)
+ 	.if  (!.def(HD_SCSI_VFS_NO_INVERT))
 		eor	#$FF
-.endif
+ 	.else
+		eor #0
+	.endif
+ .endif
 		sta	SCSI_DATA
-.if .def(HD_SCSI_VFS) && (!.def(HD_SCSI_VFS_NO_INVERT))
+ .if .def(HD_SCSI_VFS)
+ 	.if  (!.def(HD_SCSI_VFS_NO_INVERT))
 		eor	#$FF
-.endif
+ 	.else
+		eor #0
+	.endif
+ .endif
 .ifdef USE65C12
 		stz	SCSI_IRQEN
 .else
@@ -5319,7 +5335,7 @@ _elkL9B23:
 		jsr	FSC6_NEWFS			; 9B1F 20 3C A9                  <.
 _lbbc9B22:
 		ldx	#$00				; Keyboard
-		lda	#OSBYTE_15_FLUSH_BUF		
+		lda	#OSBYTE_15_FLUSH_BUF
 		jsr	OSBYTE				; flush
 		lda	#OSBYTE_8A_INS_BUF
 		ldy	#$CA				; character ??? TODO: ask
@@ -5648,7 +5664,7 @@ L9240:  plp                                     ; 9240 28                       
         bcs     VFS_L9248                       ; 9241 B0 05                    ..
         lda     #$1B                            ; 9243 A9 1B                    ..
         jsr     SCSI_Command_AXY_CkErr          ; 9245 20 93 AB                  ..
-VFS_L9248:  
+VFS_L9248:
 	pla                                     ; 9248 68                       h
         cmp     #$56                            ; 9249 C9 56                    .V
         bne     @QQ                           	; 924B D0 03                    ..
@@ -5818,7 +5834,7 @@ restoreROMandY_A0rts:					; L9CA8
   .endif
 		lda	#$00				; Claim the call
 		rts
-.endif 
+.endif
 ;;
 L9CAE:		.byte	":0.LIB*", $0D
 ;;
@@ -5907,7 +5923,7 @@ Serv24:		dey					; ADFS needs one page
 ;;
 ;; Serv25 - Return filing system information
 ;; =========================================
-Serv25:		
+Serv25:
 .ifdef HD_SCSI_VFS
 		ldx	#$15		; TODO: bug?
 .else
@@ -6037,7 +6053,7 @@ VFS_L9399:  	lda     #OSBYTE_A8_ADDR_EXTVEC                            ; 9399 A9
         	sta     $0D9D                           ; 93E7 8D 9D 0D                 ...
         	lda     IRQ1V+1                         ; 93EA AD 05 02                 ...
         	sta     $0D9E                           ; 93ED 8D 9E 0D                 ...
-        	lda     #$20                            ; 93F0 A9 20                    . 
+        	lda     #$20                            ; 93F0 A9 20                    .
         	sta     $0D99                           ; 93F2 8D 99 0D                 ...
         	ldy     #$06                            ; 93F5 A0 06                    ..
         	sty     $0D9A                           ; 93F7 8C 9A 0D                 ...
@@ -6181,7 +6197,7 @@ L948A:  lda     $CE00,y                         ; 948A B9 00 CE                 
         dey                                     ; 948F 88                       .
         bpl     L948A                           ; 9490 10 F8                    ..
         bmi     L9DB4                           ; 9492 30 3C                    0<
-skOSW_VFS:	
+skOSW_VFS:
 .endif
 		cmp	#OSWORD_BASE+2			; Is it &72?
 		bne	L9DC0				; No, jump ahead
@@ -6331,7 +6347,7 @@ L9DF6:		jsr	L92A8
 		.byte	((VERSION & $F0) >> 4)+'0'
 		.byte	(VERSION & $0F)+'0'
 		.byte	$8D
-.endif 
+.endif
 		rts
 Serv9:
 
@@ -6340,7 +6356,7 @@ Serv9:
 	.if .def(X_IDE_HOG) || .def(IDE_JGH_R23)
 		jsr	GetChar
 	.else
-		lda	($F2),Y		
+		lda	($F2),Y
 		cmp	#$20
 	.endif
 		bcs	L9E3E
@@ -6373,7 +6389,7 @@ L9E34:		jsr	L9E29
 		bne	L9E34
 L9E39:		jsr	L9E29
 		beq	L9E39
-L9E3E:		
+L9E3E:
 .ifdef HD_SCSI_VFS
 		jsr	VFS_Serv9_extra
 .endif
@@ -6525,7 +6541,7 @@ L9EC7:		.byte	>(LA001-1)
 ;;
 ;; FSC 3 - *command
 ;; ================
-starCMD:		
+starCMD:
 .ifdef HD_SCSI_VFS
 		jsr	VFS_FSC3_STARCMD
 .endif
@@ -6980,7 +6996,7 @@ LA13F:		sty	WKSP_ADFS_26F
 		bcs	VFS_L9801
 		dey
 		lda	($B4),Y
-.endif		
+.endif
 		jsr	L8847
 		sta	WKSP_ADFS_26F			; Set drive number
 LA150:		rts
@@ -7074,7 +7090,7 @@ VFS_L9886:
 		sta	$B4
 		lda	#>(LA2EA)
 		sta	$B5
-		jsr	starDIR				; Do something		
+		jsr	starDIR				; Do something
 LA1B9:		lda	WKSP_ADFS_31F			; Get previous drive
 		cmp	WKSP_ADFS_26F			; Compare with ???
 		bne	LA1C9				; If different, jump past
@@ -7215,7 +7231,7 @@ starCOMPACT:	jsr	LA50D
 	.else
 		bcs	LA2EB
 	.endif
-		lda	#OSBYTE_84_HIMEM		
+		lda	#OSBYTE_84_HIMEM
 		jsr	OSBYTE				; read himem
 		txa
 		bne	brkBadCompact			; why?
@@ -7224,7 +7240,7 @@ starCOMPACT:	jsr	LA50D
 		sta	WKSP_ADFS_260			; store HIMEM page
 		lda	#$80
 		sec
-		sbc	WKSP_ADFS_260			
+		sbc	WKSP_ADFS_260
 		sta	WKSP_ADFS_261			; store number of pages above HIMEM
 		jmp	LA377
 ;;
@@ -7337,7 +7353,7 @@ set_cursor_state_zeros:
 
 
 
-LA377:		
+LA377:
 	.ifdef ELK_MINCE_COMPACT
 		ldy	#0
 		jsr	set_cursor_state
@@ -7366,7 +7382,7 @@ LA377:
 	.ifdef ELK_MINCE_COMPACT
 		ldy	#1
 		jsr	set_cursor_state
-	.endif	
+	.endif
 		rts
 
 .endif ; !.def HD_SCSI_VFS
@@ -8436,7 +8452,7 @@ _lbbcA976:
 ;;
 ;; OSARGS Y=0 - implement all calls as ENSURE (A=&FF)
 ;; --------------------------------------------------
-LA992:		
+LA992:
 
 .ifndef HD_SCSI_VFS
 		ldx	#$10
@@ -8507,7 +8523,7 @@ LA9D0:		jsr	LB19C
 LA9DA:		dex
 		bne	LAA59				; Jump if not 1, not PTR=
 		lda	WKSP_ADFS_3AC_CH_FLAGS,Y
-		bpl	LAA16				; if not open for write/update 
+		bpl	LAA16				; if not open for write/update
 LA9E2:
 .ifndef HD_SCSI_VFS
 		ldx	ZP_ADFS_C3_SAVE_X
@@ -8639,7 +8655,7 @@ LAAD0:		dex
 
 .else
 		; dummy write buffer call for VFS
-LAAB9:	
+LAAB9:
 		lda     #$00                            ; 9CCE A9 00                    ..
         	jmp     my_OSARGS_exit                           ; 9CD0 4C 2F 9C                 L/.
 
@@ -8812,9 +8828,9 @@ LAC54:		lda	WKSP_ADFS_204,X
 		rol	WKSP_ADFS_204,X
 LAC6E:
 .ifdef HD_SCSI_VFS
-		rts			
-.else		
-		jmp	LAB03		
+		rts
+.else
+		jmp	LAB03
 .endif
 ;;
 LAC71:		dex
@@ -9088,7 +9104,7 @@ LAE68:
 LB17F:
 		rts
 brkNotOpenUpdate:
-.else		
+.else
 
 LAE68:
 		lda	#$00
@@ -9598,7 +9614,7 @@ LB231:		lda	WKSP_ADFS_332			; Handle stored from *RUN?
 ;;
 ;; Open a file
 ;; -----------
-LB23E:		
+LB23E:
 .ifdef HD_SCSI_VFS
 		tya                                     ; A065 98                       .
         	cmp     #$80                            ; A066 C9 80                    ..
@@ -10147,7 +10163,7 @@ LB635:		lda	($C6),Y
 		cmp	#$03
 		bcs	LB64E
 		jsr	LAE6D
-LB64E:		
+LB64E:
 .endif
 		ldy	#$09
 		ldx	ZP_ADFS_CF_CHANNEL_OFFS
@@ -10741,7 +10757,7 @@ LBA40:		iny
 		.res	$6D, $0
 .elseif .def(ELK_100_FLOPPY) && (!.def(SCSI_ELK_HOG))
 		brk
-.elseif (TARGETOS <= 1) 
+.elseif (TARGETOS <= 1)
 		.byte	$2E
 		.byte	$0D
 .endif
@@ -10767,7 +10783,7 @@ LBA57:		lda	#$FF
               ;;.include       "MMC_UserPort.asm"
   .endif ; NOT HOG
 
-.endif; 
+.endif;
 
 
 .ifndef HD_SCSI_VFS
@@ -10804,6 +10820,3 @@ LBA57:		lda	#$FF
 .endif; ndef HD_SCSI_VFS
 
 ENDOFROM:
-
-
-

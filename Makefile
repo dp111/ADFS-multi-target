@@ -25,7 +25,7 @@ ROMNAMES= 	masIDE \
 		elkSCSI_hog \
 		elkSCSI_mince \
 		elkIDE_hog \
-		masVFS1M
+		masVFS_Pi1MHz
 
 
 ROMS=$(addsuffix .rom, $(addprefix $(BUILDDIR)/, $(ROMNAMES)))
@@ -44,7 +44,7 @@ $(BUILDDIR)/%.rom: FORCE
 ssd: roms $(BUILDDIR)/adfsroms.ssd
 
 $(BUILDDIR)/adfsroms.ssd:
-	#dfs tool from https://github.com/dominicbeesley/dfs-0.4	
+	#dfs tool from https://github.com/dominicbeesley/dfs-0.4
 	dfs form -80 $@
 	dfs title $@ "ADFS_DOB"
 	dfs add -l 0xFFFF8000 -e 0xFFFF8000 -f "ELKM100" $@ $(BUILDDIR)/elkSCSI_mince.rom
@@ -99,7 +99,7 @@ COMPARES=	compares/org/masIDE.da.s \
 	compares/new/Hoglet13x/JGH133.da.s \
 	compares/new/Hoglet13x/ELK100.da.s \
 	compares/new/Hoglet13x/ELK103.da.s \
-	compares/new/Hoglet13x/ELK130E.da.s 
+	compares/new/Hoglet13x/ELK130E.da.s
 
 
 compares: roms comparedirs $(COMPARES)
@@ -187,4 +187,4 @@ clean: $(addprefix clean-, $(ROMNAMES))
 	-rm $(BUILDDIR)/adfsroms.ssd
 
 clean-%:
-	make -C src clean ROMNAME=${*}	
+	make -C src clean ROMNAME=${*}

@@ -93,9 +93,13 @@ L817C:		jsr	SCSI_WaitforReq			; Check SCSI status
 ;;
 ;;			    I/O write
 		lda	($B2),Y				; Get byte from memory
-.if .def(HD_SCSI_VFS) && (!.def(HD_SCSI_VFS_NO_INVERT))
+ .if .def(HD_SCSI_VFS)
+ 	.if  (!.def(HD_SCSI_VFS_NO_INVERT))
 		eor	#$FF
-.endif
+ 	.else
+		eor #0
+	.endif
+ .endif
 		sta	SCSI_DATA			; Write to SCSI data port
 .if .def(USE65C12) && (!.def(HD_SCSI_VFS))
 		bra	L8193				; Jump to update address
@@ -112,9 +116,13 @@ L8193:		iny					; Point to next byte
 ;;
 L819B:		bcs	L81A5				; Jump for Tube read
 		lda	TUBEIO				; Get byte from Tube
-.if .def(HD_SCSI_VFS) && (!.def(HD_SCSI_VFS_NO_INVERT))
+ .if .def(HD_SCSI_VFS)
+ 	.if  (!.def(HD_SCSI_VFS_NO_INVERT))
 		eor	#$FF
-.endif
+ 	.else
+		eor #0
+	.endif
+ .endif
 		sta	SCSI_DATA			; Write byte to SCSI data port
 .if .def(USE65C12) && (!.def(HD_SCSI_VFS))
 		bra	L817C				; Loop for next byte
@@ -169,9 +177,13 @@ L81E1:		jsr	SCSI_WaitforReq
 		bmi	CommandDone			; Jump to get result and return
 		bvs	L81F4
 L81E8:		lda	($B2),Y
-.if .def(HD_SCSI_VFS) && (!.def(HD_SCSI_VFS_NO_INVERT))
+ .if .def(HD_SCSI_VFS)
+ 	.if  (!.def(HD_SCSI_VFS_NO_INVERT))
 		eor	#$FF
-.endif
+ 	.else
+		eor #0
+	.endif
+ .endif
 		sta	SCSI_DATA
 		iny
 		bne	L81E8
@@ -221,16 +233,20 @@ L822B:		bvs	L8245
 		php
 		lda	#$06
 		jsr	TubeStartXferSEI_406
-L8233:		
+L8233:
 .ifndef HD_SCSI_VFS
 		nop
 		nop
 		nop
 .endif
 		lda	TUBEIO				; Read from Tube
-.if .def(HD_SCSI_VFS) && (!.def(HD_SCSI_VFS_NO_INVERT))
+ .if .def(HD_SCSI_VFS)
+ 	.if  (!.def(HD_SCSI_VFS_NO_INVERT))
 		eor	#$FF
-.endif
+ 	.else
+		eor #0
+	.endif
+ .endif
 		sta	SCSI_DATA			; Write to SCSI data
 		iny
 		bne	L8233
@@ -245,7 +261,7 @@ L8233:
 L8245:		php
 		lda	#$07
 		jsr	TubeStartXferSEI_406
-L824B:		
+L824B:
 .ifdef HD_SCSI_VFS
 		jsr	SCSI_WaitforReq
 .else
