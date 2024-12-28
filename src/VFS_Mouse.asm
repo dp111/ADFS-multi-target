@@ -77,12 +77,6 @@ VFS_0D93_CTDN_SEARCH = $0d93
 VFS_0D94_CTDN_QQQQQ = $0d94
 VFS_0D95_20Hz_CTDN = $0d95  ;;count down 4..0
 
-;CommandExecXY =  $80a7
-;GenerateError =  $8270
-;ErrorEscapeACKReloadFSM = $827f ;AckEscapeAndBRK
-;ReloadFSMandDIR_ThenBRK = $8326
-;GenerateErrorNoSuff = $832d
-;myCmosRead =     $9076
 WKSP_ADFS_215_CMDBUF = $c215
 
 sheila_ACCON =   $fe34
@@ -325,7 +319,7 @@ VFS_PrintNopTermString:
          jsr     getB6CmdCharInc
 @lp:     jsr     getB6CmdCharInc
          bmi     @retPTR
-         jsr     L8C7A
+         jsr     L92CB
          jmp     @lp
 
 @retPTR: jmp     ($00b6)
@@ -1859,9 +1853,9 @@ Extended_IRQ1_Vector:
          and     sheila_USRVIA_ier-1
          and     #$18
          bne     LB567
-         lda     #>(LB567-1)
+         lda     #>(LB567-1) ; rts_call_via_rti
          pha
-         lda     #<(LB567-1)
+         lda     #<(LB567-1) ; rts_call_via_rti
          pha
          php
          lda     $fc

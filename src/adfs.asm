@@ -53,7 +53,7 @@
 
 	.ifdef HD_SCSI_VFS
 		.export SCSI_WaitforReq_noCLI
-		.export L8C7A
+		.export L92CB
 		.export CommandExecXY
 		.export ErrorEscapeACKReloadFSM
 		.export ReloadFSMandDIR_ThenBRK
@@ -1463,8 +1463,11 @@ L8646:		plp
 		bne	L8646
 		plp
 		jmp	L863D
-;;
-L865B:		ldx	#$FF
+;;************************* This code here is unreachable in VFS *************************
+.ifndef HD_SCSI_VFS
+L865B:
+.endif
+     	ldx	#$FF
 		stx	$B3
 		inx
 L8660:		cpx	WKSP_ADFS_100_FSM_S1 + $FE
@@ -1585,6 +1588,7 @@ L8723:		ldx	$B3
 		sta	$B3
 L872C:		ldx	$B2
 		jmp	L8660
+;; ************************* End of VFS unreachable code *************************
 ;;
 L8731:		inc	$B4
 		bne	L8737
@@ -1892,7 +1896,7 @@ L88FD:		jsr	L9456
 		bne	L892F
 		jmp	L8997
 ;;
-L8910:		lda	#$24
+L8910:		lda	#$24  ; '$'
 		sta	WKSP_ADFS_262
 		lda	#$0D
 		sta	WKSP_ADFS_263
@@ -2526,7 +2530,6 @@ L8C74:		lda	($B6),Y				; Copy length/exec/load
 		sta	WKSP_ADFS_215_DSKOPSAV_RET,X			; to workspace
 		dey
 		dex
-L8C7A:
 		bpl	L8C74				; Loop for 12 bytes
 		ldy	#$0D
 		ldx	#$0B
