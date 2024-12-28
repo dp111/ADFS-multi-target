@@ -294,7 +294,7 @@ LBF09:		rts
 
 ;;
 ;;   &A0  Returned error, &40+FDC status or &00+HDD error
-;;   &A1  b7=write/read, b5=hardware has been accessed, b0=error occured?
+;;   &A1  b7=write/read, b5=hardware has been accessed, b0=error occurred?
 ;;   &A2  b0=?
 ;;   &A3
 ;;   &A4 sector
@@ -502,4 +502,3 @@ DRVNOTACC:	jsr	TubeRelease			; Release Tube, restore screen
 NOERR:		ldy	$B1
 		and	#$7F				; Remove bit 7 and set EQ
 		rts					; Return with A=error, EQ=Ok
-

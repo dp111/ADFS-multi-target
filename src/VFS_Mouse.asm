@@ -356,7 +356,7 @@ FCMD_Single_CharA:
 ;* with <CR>                                                                   *
 ;*******************************************************************************
 FCMD_TextBuf:
-         lda     #SCSICMD_CA_VENDOR_FCMD ;command $CA ; TODO: what is this command? the actial param seems to be in the command buffer
+         lda     #SCSICMD_CA_VENDOR_FCMD ;command $CA ; TODO: what is this command? the actual param seems to be in the command buffer
 sendCmdATxtBuf:
          ldx     #<WKSP_VFS_E00_TXTBUF
          ldy     #>WKSP_VFS_E00_TXTBUF
@@ -1514,7 +1514,7 @@ LB2ED:   sta     $090b
          bcs     LB2DD
          pha
          clc
-         adc     #>LB9A8                       ; mouse symble table
+         adc     #>LB9A8                       ; mouse symbol table
          sta     ZP_EXTRA_BASE+1
          lda     #<LB9A8
          sta     ZP_EXTRA_BASE

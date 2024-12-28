@@ -11,7 +11,7 @@
 
 
 ;;
-;; Service 5 - Interupt occured
+;; Service 5 - Interrupt occurred
 ;; ============================
 Svc5_IRQ:	lda	ZP_ADFS_FLAGS			; Get flags
 		and	#(ADFS_FLAGS_HD_PRESENT + ADFS_FLAGS_ENSURING); Check for hard drive+files being ensured

@@ -4,11 +4,11 @@
 		.include "hardware.inc"
 
 		.export HD_BGET_ReadSector
-		
+
 		.segment "hd_driver_bget"
 
 HD_BGET_ReadSector:
-	; setup data address frmo &BE
+	; setup data address from &BE
 	lda	$BE
 	sta	WKSP_ADFS_216_DSKOPSAV_MEMADDR
 	lda	$BF
@@ -18,4 +18,3 @@ HD_BGET_ReadSector:
 	sta	WKSP_ADFS_216_DSKOPSAV_MEMADDR+3
 	lda	#$08				; &08 - READ
 	jsr	HD_CommandBGETBPUTsector
-

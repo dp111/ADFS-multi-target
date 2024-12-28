@@ -51,12 +51,12 @@ LAB76:		lda	$B2
 		sta	$B3
 		jsr	MMC_StartWrite
 .ifndef HD_MMC_HOG					; TODO: reinstate for HOG?
-		bne	LAB5BJmpGenerateError		; Error occured
+		bne	LAB5BJmpGenerateError		; Error occurred
 .endif
 		jsr	MMC_Write256
 		jsr	MMC_EndWrite
 .ifndef HD_MMC_HOG					; TODO: reinstate for HOG?
-		bne	LAB5BJmpGenerateError		; Error occured
+		bne	LAB5BJmpGenerateError		; Error occurred
 .endif
 		pla
 		sta	$B3
@@ -77,7 +77,3 @@ LAB76:		lda	$B2
 		nop
 		nop
 .endif
-
-
-
-

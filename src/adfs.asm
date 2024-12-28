@@ -532,7 +532,7 @@ CommandExecXY:						; L80A2
 		bpl	L80D7				; Jump into middle of retry loop (always?!?)
 ;;
 ;; This loop tries to access a drive. If the action returns 'Not ready' it
-;; retries a number of times, allowing interuption by an Escape event.
+;; retries a number of times, allowing interruption by an Escape event.
 ;;
 CommandExecRetryLp:
 		jsr	CommandExecSkStartExec		; Do the specified command
@@ -599,7 +599,7 @@ CommandExecFloppyOp:
 		jsr	DoFloppySCSICommandIND		; Do floppy operation
 		beq	L8110				; Completed ok
 		pha					; Save result
-		ldy	#$06				; Update ADFS error infomation
+		ldy	#$06				; Update ADFS error information
 		lda	($B0),Y				; Get Drive+Sector b16-b19
 		ora	WKSP_ADFS_317_CURDRV		; OR with current drive
 		sta	WKSP_ADFS_2D0_ERR_SECTOR+2	; Store
@@ -2189,7 +2189,7 @@ L8ACE:		rts
 ;; There are now less than 256 bytes left, must be reading
 ;; -------------------------------------------------------
 L8ACF:		sta	WKSP_ADFS_21E_DSKOPSAV_SECCNT			; Store Length0 in Sector Count
-		lda	WKSP_ADFS_220_DSKOPSAV_XLEN+1			; Get last length transfered
+		lda	WKSP_ADFS_220_DSKOPSAV_XLEN+1			; Get last length transferred
 		clc
 		adc	WKSP_ADFS_21B_DSKOPSAV_SEC+2			; Add to Sector0
 		sta	WKSP_ADFS_21B_DSKOPSAV_SEC+2			; Store in Sector0
@@ -2357,7 +2357,7 @@ L8B9B:
 		phx
 		jsr	MMC_StartRead
 .ifndef HD_MMC_HOG
-		bne	PartError			; Error occured
+		bne	PartError			; Error occurred
 .endif
 		plx
 		phx
@@ -2370,7 +2370,7 @@ L8B9B:
 		jsr	MMC_Clocks			; twice, as sectors are stretched to 512 bytes
 		jsr	MMC_16Clocks			; ignore CRC
 .ifndef HD_MMC_HOG
-		lda	#0				; If we've got to here no error occured
+		lda	#0				; If we've got to here no error occurred
 PartError:
 .endif
 							;Jump to L81AD to release and return result
@@ -2755,7 +2755,7 @@ L8D85:		cmp	#':'
 L8D8A:		iny
 		jsr	L8743
 		bne	L8DE6
-		cmp	#'.'				; '.' - directory seperator
+		cmp	#'.'				; '.' - directory separator
 		bne	L8DE0
 		iny
 		jsr	L8DE1
@@ -2809,7 +2809,7 @@ L8DCB:		lda	($B4),Y				; Get character
 		beq	L8DE9
 		cmp	#'#'				; '#' - wildcard
 		beq	L8DE9
-		cmp	#'.'				; '.' - directory seperator
+		cmp	#'.'				; '.' - directory separator
 		beq	L8DE0
 		dey
 		cpy	#$FF
@@ -5692,7 +5692,7 @@ VFS_L9248:
 .ifdef PRESERVE_CONTEXT
 		lda	WKSP_ADFS_31B			; Lib not unset, jump ahead
   .ifdef X_IDE_OLD
-		clc					; TODO: Ask JGH - I can't see the purpose of this? Am I missing somthing subtle with carry flag?
+		clc					; TODO: Ask JGH - I can't see the purpose of this? Am I missing something subtle with carry flag?
 		adc	#1
   .else ; !.def X_IDE_OLD
 
@@ -8892,7 +8892,7 @@ LACBA:		dec	ZP_ADFS_RETRY_CTDN		; Decrement retries
 
 		.segment "rom_main_8"
 
-		bne	LACBA				; Retry if error occured
+		bne	LACBA				; Retry if error occurred
 LACDA:		ldx	$B0				; Restore X & Y
 		ldy	$B1
 		lda	#$81
@@ -10568,7 +10568,7 @@ LB915:		lda	WKSP_ADFS_100_FSM_S1 + $FD	; Get boot option
 		rol	A
 		rol	A
 		rol	A
-		jsr	LB8A5				; Store drive numer
+		jsr	LB8A5				; Store drive number
 LB925:		jsr	TubeRelease				; Release Tube
 		jmp	LB75E				; Restore X/Y, return A=0
 ;;

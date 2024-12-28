@@ -17,7 +17,7 @@
                 .export MMC_BEGIN
                 .export setCommandAddress
                 .export setCommandAddressSDHC
-                .export setRandomAddress          
+                .export setRandomAddress
 
 
                 .segment "mmc_driver_a"
@@ -313,7 +313,7 @@ translate_table:
      JSR MMC_DEVICE_RESET
 
      ;; Check if MMC initialised
-     ;; If not intialise the card
+     ;; If not initialise the card
      BIT MMC_MMCSTATE
      BVS beg2
 
@@ -654,7 +654,7 @@ incDone:
 ; Normally MBR resides here, but we do this before MBR is loaded
 ; We can't use OSWORD &72 to do this, as we don't want alternative bytes skipped
 ; This is done during filing system selection, so generating errors would leave
-; system in an inconsistant state.
+; system in an inconsistent state.
 ;
 ; This MUST be able to terminate if the hardware is absent.
 ;

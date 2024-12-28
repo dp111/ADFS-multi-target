@@ -14,7 +14,7 @@
 
 ;TODO: put in os.inc if same as ADFS?
 CFGBITS_01_EJECT= $01
-CFGBITS_40_DIR	= $40                            
+CFGBITS_40_DIR	= $40
 
 VFS_Serv28:
 		phx                                     ; 8FE3 DA                       .
@@ -66,7 +66,7 @@ VFS_L903C:  	lda     VFS_cfgStrings,x                         ; 903C BD 8F 90   
         	beq     VFS_L9049                           ; 9041 F0 06                    ..
         	lda     ($F2),y                         ; 9043 B1 F2                    ..
         	cmp     #$2E                            ; 9045 C9 2E                    ..
-        	beq     VFS_L9069                           ; 9047 F0 20                    . 
+        	beq     VFS_L9069                           ; 9047 F0 20                    .
 VFS_L9049:  	lda     ($F2),y                         ; 9049 B1 F2                    ..
         	and     #$DF                            ; 904B 29 DF                    ).
         	sta     $AF                             ; 904D 85 AF                    ..
@@ -80,18 +80,18 @@ VFS_L9049:  	lda     ($F2),y                         ; 9049 B1 F2               
         	cmp     #$0D                            ; 905D C9 0D                    ..
         	bne     VFS_L903C                           ; 905F D0 DB                    ..
         	lda     ($F2),y                         ; 9061 B1 F2                    ..
-        	cmp     #$20                            ; 9063 C9 20                    . 
+        	cmp     #$20                            ; 9063 C9 20                    .
         	beq     VFS_L9069                           ; 9065 F0 02                    ..
         	cmp     #$0D                            ; 9067 C9 0D                    ..
 VFS_L9069:  	rts                                     ; 9069 60                       `
 
 ; ----------------------------------------------------------------------------
 VFS_L906A:  	ldx     #VFS_cfgStrOff_VFSNoDir
-        	bra     VFS_L903A              
-VFS_L906E:  	ldx     #VFS_cfgStrOff_VFSEject                   
-        	bra     VFS_L903A              
-VFS_L9072:  	ldx     #VFS_cfgStrOff_VFSNoEject                   
-        	bra     VFS_L903A              
+        	bra     VFS_L903A
+VFS_L906E:  	ldx     #VFS_cfgStrOff_VFSEject
+        	bra     VFS_L903A
+VFS_L9072:  	ldx     #VFS_cfgStrOff_VFSNoEject
+        	bra     VFS_L903A
 myCmosRead:  	lda     ZP_MOS_CURROM                             ; 9076 A5 F4                    ..
         	clc                                     ; 9078 18                       .
         	adc     #CMOS_PER_ROM_BASE                            ; 9079 69 14                    i.
@@ -111,14 +111,14 @@ myCmosWrite: 	tay                                     ; 9083 A8                 
         	jmp     OSBYTE                          ; 908C 4C F4 FF                 L..
 
 ; ----------------------------------------------------------------------------
-VFS_cfgStrings: 
+VFS_cfgStrings:
 VFS_cfgStrOff_VFSDir = *-VFS_cfgStrings
 		.byte	"VFSDir", $D
-VFS_cfgStrOff_VFSNoDir = *-VFS_cfgStrings		
+VFS_cfgStrOff_VFSNoDir = *-VFS_cfgStrings
 		.byte   "VFSNoDir", $D
-VFS_cfgStrOff_VFSNoEject = *-VFS_cfgStrings		
+VFS_cfgStrOff_VFSNoEject = *-VFS_cfgStrings
 		.byte   "NoEject", $D
-VFS_cfgStrOff_VFSEject = *-VFS_cfgStrings		
+VFS_cfgStrOff_VFSEject = *-VFS_cfgStrings
 		.byte   "Eject", $D
 VFS_Serv29:
         	lda     ($F2),y                         ; 90AD B1 F2                    ..
@@ -143,25 +143,25 @@ VFS_L90D5:	jsr     cfgPrintDirNoDir                           ; 90D5 20 DB 90   
 VFS_L90D8:	jmp     VFS_L900B                           ; 90D8 4C 0B 90                 L..
 
 ; ----------------------------------------------------------------------------
-cfgPrintDirNoDir:	
-		phx                                     
-		phy                                     
-		jsr     myCmosRead                      
-		ldx     #VFS_cfgStrOff_VFSDir           
+cfgPrintDirNoDir:
+		phx
+		phy
+		jsr     myCmosRead
+		ldx     #VFS_cfgStrOff_VFSDir
 		and     #CFGBITS_40_DIR
 		beq     PrCfgStringX
 		ldx     #VFS_cfgStrOff_VFSNoDir
 
 		; print $D terminated string at VFS_cfgStrings,X
-PrCfgStringX:	lda     VFS_cfgStrings,x                
-		jsr     masPrintChNoSpool                           
-		inx                                     
-		cmp     #$0D                            
-		bne     PrCfgStringX                    
-Serv29_exit:	ply                                     
-		plx                                     
-		lda     #$29                            ; reload ervice call #
-		rts                                     
+PrCfgStringX:	lda     VFS_cfgStrings,x
+		jsr     masPrintChNoSpool
+		inx
+		cmp     #$0D
+		bne     PrCfgStringX
+Serv29_exit:	ply
+		plx
+		lda     #$29                            ; reload service call #
+		rts
 
 ; ----------------------------------------------------------------------------
 VFS_L90F8:	phx
@@ -176,5 +176,3 @@ VFS_Serv1:
         	rts
 
 ; ----------------------------------------------------------------------------
-
-	

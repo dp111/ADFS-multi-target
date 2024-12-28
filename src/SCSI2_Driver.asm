@@ -373,7 +373,7 @@ SCSI2_CommandPartialSector:
 		lda	$B0
 		pha
 		lda	$B1
-		pha					; TODO: check if this is necessary, is it alwats C215?
+		pha					; TODO: check if this is necessary, is it always C215?
 
 		lda	#0
 		pha					; room for the data sent back
@@ -611,5 +611,3 @@ L8324:		jsr	SCSI2_send_byteA		; This code cannot be inlined or JMPed as
 
 ; TODO: why must scopes be forward declared?
 SCSI2_RequestSense_L82A5 = SCSI2_RequestSense::L82A5
-
-

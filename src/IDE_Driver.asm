@@ -12,7 +12,7 @@
 		.export CommandExit
 		.export CommandOk
 		.export SetCommand
-.endif	
+.endif
 
 		.segment "hd_driver_1"
 ;;
@@ -190,7 +190,7 @@ TransferByte:
 		inc	$81
 		lda	IDE_STATUS
 		and	#$21
-		bne	TransDone			; Error occured
+		bne	TransDone			; Error occurred
 		inc	WKSP_ADFS_228
 		bne	TubeAddr			; Increment Tube address
 		inc	WKSP_ADFS_229
@@ -330,7 +330,7 @@ SetRandom:
 		eor	WKSP_ADFS_201,X
 		jsr	IDE_SetDriveHead			; Set device and command
 		pla
-.ifdef X_IDE_OLD		
+.ifdef X_IDE_OLD
 		jmp	_lelkLA0D8			; TODO: Ask JGH - is this vestigial it seems unnecessary
 .else ; !X_IDE_OLD
 		php

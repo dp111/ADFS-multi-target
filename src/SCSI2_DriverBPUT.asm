@@ -9,7 +9,7 @@
 
 HD_BPUT_WriteSector:
 
-; setup data address frmo &BE
+; setup data address from &BE
 	lda	$BC
 	sta	WKSP_ADFS_216_DSKOPSAV_MEMADDR
 	lda	$BD

@@ -6,13 +6,13 @@
 
               .segment "hd_driver_1"
 
-              .export CommandExit2       
+              .export CommandExit2
 
 ; ADFS MMC Card Driver
 ; (C) 2015 David Banks
 ; Based on code from JGH's IDE Patch
 ;
-; 27-Mar-2016 JGH: Tweeked comments
+; 27-Mar-2016 JGH: Tweaked comments
 ; JSR MMC_BEGIN exits on failure
 ; JSR setCommandAddress exits on failure
 
@@ -145,5 +145,3 @@ CommandExit:
        LDY $B1
        AND #$7F		; Set EQ flag from result
        RTS
-
-

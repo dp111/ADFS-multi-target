@@ -12,7 +12,7 @@
 		.export CommandExit
 		.export CommandOk
 		.export SetCommand
-.endif	
+.endif
 
 		.segment "hd_driver_1"
 ;;
@@ -186,7 +186,7 @@ TransferBytesDone:
 		inc	$81
 		lda	IDE_STATUS
 		and	#$21
-		bne	TransDone			; Error occured
+		bne	TransDone			; Error occurred
 		inc	WKSP_ADFS_228
 		bne	TubeAddr			; Increment Tube address
 		inc	WKSP_ADFS_229

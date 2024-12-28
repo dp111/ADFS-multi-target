@@ -194,7 +194,7 @@ MMC_ReadToTube:
     RTS
 
 
-;; Wait for the shift reg to complete shifing, and return the value in A.
+;; Wait for the shift reg to complete shifting, and return the value in A.
 ;;
 ;; If this is the last byte, return to mode 0 before reading the shift reg.
 ;;
@@ -331,9 +331,9 @@ MMC_ReadToTube:
 ;;
 ;; There is other overhead, between blocks, and interrupts.
 ;;
-;; 19us/byte for &7000 bytes actually took 680ms. This is excactly the value SWEH measured with the TurboMMC ROM.
+;; 19us/byte for &7000 bytes actually took 680ms. This is exactly the value SWEH measured with the TurboMMC ROM.
 ;;
-;; I'm goting to return to the code as the top of this thread, as I don't like doing things by dead reconning.
+;; I'm going to return to the code as the top of this thread, as I don't like doing things by dead reckoning.
 ;;
 ;; 22us/byte for &7000 bytes actually took 770ms.
 
@@ -350,7 +350,7 @@ notLastByte:
 lastByte:
     BIT MMC_IFR          ;; wait for the SR interrupt flag to be set
     BEQ lastByte
-    JSR ShiftRegMode0 ;; returning to mode 0 here avoids an addional byte read
+    JSR ShiftRegMode0 ;; returning to mode 0 here avoids an additional byte read
     LDA MMC_SR           ;; read the data byte, and clear the SR interrupt flag
     RTS
 .endproc

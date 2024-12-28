@@ -12,7 +12,7 @@
 		.segment "hd_driver_svc5"
 
 ;;
-;; Service 5 - Interupt occured
+;; Service 5 - Interrupt occurred
 ;; ============================
 Svc5_IRQ:	rts					; Remove IRQ routine
 UpdateDrive:
