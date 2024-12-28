@@ -1730,7 +1730,7 @@ LB44C:   lda     VFS_N916_MouseY+1
          dec     VFS_N916_MouseY
 @LB47B:  lda     LB965,X
          sta     $8d
-         lda     LB943,X
+         lda     LB943,X   ; table return 0x80 for even X and 0x00 for odd.
          sta     $8c
          lda     VFS_N912_MouseX+1
          bpl     @LB48D
@@ -1758,7 +1758,7 @@ LB44C:   lda     VFS_N916_MouseY+1
          and     #$03
          tax
          rts
-
+OSBYTE_Extended_Vectorcode:
          cmp     #$80
          beq     @LB50A
 @LB4BA:  pha
@@ -1851,7 +1851,8 @@ LB44C:   lda     VFS_N916_MouseY+1
          plp
          ldy     #$00
          beq     @LB52B
-
+         
+Extended_IRQ1_Vector:
          cld
          lda     sheila_USRVIA_ier
          and     sheila_USRVIA_ier-1
@@ -2363,7 +2364,7 @@ VFS_FSC3_STARCMD:
          .byte   %00010000
          .byte   %00010000
 
-LB943:   .byte   %10000000
+LB943:   .byte   %10000000 ; table 128 or 0
          .byte   %00000000
          .byte   %10000000
          .byte   %00000000
@@ -2398,18 +2399,18 @@ LB943:   .byte   %10000000
          .byte   %10000000
          .byte   %00000000
 
-LB965:   .byte   %01111101
-         .byte   %01111011
-         .byte   %01111000
-         .byte   %01110110
-         .byte   %01110011
-         .byte   %01110001
-         .byte   %01101110
-         .byte   %01101100
-         .byte   %01101001
-         .byte   %01100111
-         .byte   %01100100
-         .byte   %01100010
+LB965:   .byte   %01111101 ; 125 0x7D
+         .byte   %01111011 ; 123 0x7B
+         .byte   %01111000 ; 120 0x78
+         .byte   %01110110 ; 118 0x76
+         .byte   %01110011 ; 115 0x73
+         .byte   %01110001 ; 113 0x71
+         .byte   %01101110 ; 110 0x6e
+         .byte   %01101100 ; 108 0x6c
+         .byte   %01101001 ; 105 0x69
+         .byte   %01100111 ; 103 0x67
+         .byte   %01100100 ; 100 0x64
+         .byte   %01100010 ; 
          .byte   %01011111
          .byte   %01011101
          .byte   %01011010
@@ -2426,15 +2427,15 @@ LB965:   .byte   %01111101
          .byte   %00111111
          .byte   %00111100
          .byte   %00111010
-         .byte   %00110111
-         .byte   %00110101
-         .byte   %00110010
-         .byte   %00110000
-         .byte   %00101101
-         .byte   %00101011
-         .byte   %00000001
-         .byte   %00000010
-         .byte   %00000100
+         .byte   %00110111 ; 
+         .byte   %00110101 ; 53 0x35
+         .byte   %00110010 ; 50 0x32
+         .byte   %00110000 ; 48 0x30
+         .byte   %00101101 ; 45 0x2d
+         .byte   %00101011 ; 43 0x2b
+         .byte   %00000001 ; 1
+         .byte   %00000010 ; 2
+         .byte   %00000100 ; 4
 
 LB98A:   .byte   %10000000  ; this and the next table are always 640 for MODE 0 1 2 
          .byte   %10000000
@@ -2443,22 +2444,22 @@ LB98D:   .byte   %00000010
          .byte   %00000010
          .byte   %00000010
 
-LB990:   .byte   %00000000
-         .byte   %01000000
-         .byte   %10000000
-         .byte   %11000000
-         .byte   %00000000
-         .byte   %01000000
-         .byte   %10000000
-         .byte   %11000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000001
-         .byte   %00000001
-         .byte   %00000001
-         .byte   %00000001
+LB990:   .byte   %00000000 ; 0
+         .byte   %01000000 ; 64 0x40
+         .byte   %10000000 ;128 0x80
+         .byte   %11000000 ;192 0xc0
+         .byte   %00000000 ; 0
+         .byte   %01000000 ; 64
+         .byte   %10000000 ;128
+         .byte   %11000000 ;192
+         .byte   %00000000 ;0
+         .byte   %00000000 ;0
+         .byte   %00000000 ;0
+         .byte   %00000000 ;0
+         .byte   %00000001 ;1
+         .byte   %00000001 ;1
+         .byte   %00000001 ;1
+         .byte   %00000001 ;1
 
 LB9A0:   .byte   %00010100 ;20
          .byte   %00011000 ;24
@@ -2469,8 +2470,8 @@ LB9A4:   .byte   %00011100 ;28
          .byte   %00010100 ;20
          .byte   %00000100 ;4
          .byte   %00000100 ;4
-LB9A8:                          ; 3 tables of 256 bytes one for each mode in groups of 64 ?
-                                ; pointer sprite ?
+LB9A8:                          ; 3 tables of 256 bytes one for each mode in groups of 64
+                                ; pointer sprite 
                                 ; cross, magnify glass, north west arrow, North east arrow
          .byte   %00000000
          .byte   %00000000

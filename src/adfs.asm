@@ -5781,7 +5781,7 @@ L92AA:  jsr     L9C7D                         	; 92AA 20 D0 92                  
 L92BD:  ldy     WKSP_ADFS_100_FSM_S1+$FD        ; 92BD AC FD C1                 ...
         beq     VFS_L92CA                       ; 92C0 F0 08                    ..
         ldx     L9A8F-1,y                       ; 92C2 BE 69 8F                 .i.
-        ldy     #$8F                            ; 92C5 A0 8F                    ..
+        ldy     #>L9A8F	                        ; 92C5 A0 8F                    ..
         jsr     OSCLI                           ; 92C7 20 F7 FF                  ..
 VFS_L92CA:
  	ldx     $F4                             ; 92CA A6 F4                    ..
@@ -6036,12 +6036,12 @@ VFS_L9399:  	lda     #OSBYTE_A8_ADDR_EXTVEC                            ; 9399 A9
         	stx     BYTEV+1                         ; 93BF 8E 0B 02                 ...
         	lda     ($A8),y                         ; 93C2 B1 A8                    ..
         	sta     $091D                           ; 93C4 8D 1D 09                 ...
-        	lda     #$B6                            ; 93C7 A9 B6                    ..
+        	lda     #<OSBYTE_Extended_Vectorcode    ; 93C7 A9 B6                    ..
         	sta     ($A8),y                         ; 93C9 91 A8                    ..
         	iny                                     ; 93CB C8                       .
         	lda     ($A8),y                         ; 93CC B1 A8                    ..
         	sta     $091E                           ; 93CE 8D 1E 09                 ...
-        	lda     #$B4                            ; 93D1 A9 B4                    ..
+        	lda     #>OSBYTE_Extended_Vectorcode    ; 93D1 A9 B4                    ..
         	sta     ($A8),y                         ; 93D3 91 A8                    ..
         	iny                                     ; 93D5 C8                       .
         	lda     ($A8),y                         ; 93D6 B1 A8                    ..
@@ -6066,10 +6066,10 @@ VFS_L9399:  	lda     #OSBYTE_A8_ADDR_EXTVEC                            ; 9399 A9
         	sta     IRQ1V                           ; 9406 8D 04 02                 ...
         	lda     #$0D                            ; 9409 A9 0D                    ..
         	sta     IRQ1V+1                         ; 940B 8D 05 02                 ...
-        	lda     #$4F                            ; 940E A9 4F                    .O
+        	lda     #<Extended_IRQ1_Vector          ; 940E A9 4F                    .O
         	sta     ($A8),y                         ; 9410 91 A8                    ..
         	iny                                     ; 9412 C8                       .
-        	lda     #$B5                            ; 9413 A9 B5                    ..
+        	lda     #>Extended_IRQ1_Vector          ; 9413 A9 B5                    ..
         	sta     ($A8),y                         ; 9415 91 A8                    ..
         	iny                                     ; 9417 C8                       .
         	lda     $F4                             ; 9418 A5 F4                    ..
