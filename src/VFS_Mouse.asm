@@ -13,7 +13,8 @@
 		.export RestoreZpAndPage9
 		.export swap7PWSP_373_N933
 		.export swapP373N933brkTurnIlaceOn
-
+        .export OSBYTE_Extended_Vectorcode
+        .export Extended_IRQ1_Vector
 
 		.segment "vfs_mouse"
 
@@ -62,8 +63,8 @@ VFS_N908_MODESAVE = $0908
 ;90c
 ;90d
 VFS_N90E_MousePos2 = $090e  ;16:16 XY Mouse position???
-VFS_N912_MouseX =$0912 ; 16 bit X 
-VFS_N914_MouseX2 =$0914 ; 16 bit X 
+VFS_N912_MouseX =$0912 ; 16 bit X
+VFS_N914_MouseX2 =$0914 ; 16 bit X
 VFS_N916_MouseY =$0916 ; 16 bit Y
 
 VFS_N924_PTR_Q = $0924
@@ -76,12 +77,12 @@ VFS_0D93_CTDN_SEARCH = $0d93
 VFS_0D94_CTDN_QQQQQ = $0d94
 VFS_0D95_20Hz_CTDN = $0d95  ;;count down 4..0
 
-CommandExecXY =  $80a7
-GenerateError =  $8270
-ErrorEscapeACKReloadFSM = $827f ;AckEscapeAndBRK
-ReloadFSMandDIR_ThenBRK = $8326
-GenerateErrorNoSuff = $832d
-myCmosRead =     $9076
+;CommandExecXY =  $80a7
+;GenerateError =  $8270
+;ErrorEscapeACKReloadFSM = $827f ;AckEscapeAndBRK
+;ReloadFSMandDIR_ThenBRK = $8326
+;GenerateErrorNoSuff = $832d
+;myCmosRead =     $9076
 WKSP_ADFS_215_CMDBUF = $c215
 
 sheila_ACCON =   $fe34
@@ -657,7 +658,7 @@ FCMD_E1_VideoOn:
          jmp     sk
 
 ; wait for a "SEEK" *STILL/*FRAME
-; 
+;
 ; return Cy on fail or timeout
 waitForSeek:
          lda     VFS_0D94_CTDN_QQQQQ
@@ -1292,7 +1293,7 @@ LB045:   lda     VFS_N904_MousePos
          ldy     $8a
          ora     (ZP_EXTRA_BASE),Y  ; orr in spite
          ldy     $89
-         sta     ($8c),Y            ; save back to screen 
+         sta     ($8c),Y            ; save back to screen
          inc     $8a
          lda     $8a
          and     #$0f
@@ -1519,15 +1520,15 @@ LB2ED:   sta     $090b
          bcs     LB2DD
          pha
          clc
-         adc     #<LB9A8                       ; mouse symble table
+         adc     #>LB9A8                       ; mouse symble table
          sta     ZP_EXTRA_BASE+1
-         lda     #>LB9A8
+         lda     #<LB9A8
          sta     ZP_EXTRA_BASE
          pla
          clc
-         adc     #<LBCA8
+         adc     #>LBCA8
          sta     $87
-         lda     #>LBCA8
+         lda     #<LBCA8
          sta     $86
          ldx     ZP_MOS_CURROM
          lda     SYSVARS_DF0_PWSKPTAB,X
@@ -1851,13 +1852,13 @@ OSBYTE_Extended_Vectorcode:
          plp
          ldy     #$00
          beq     @LB52B
-         
+
 Extended_IRQ1_Vector:
          cld
          lda     sheila_USRVIA_ier
          and     sheila_USRVIA_ier-1
          and     #$18
-         bne     @LB567
+         bne     LB567
          lda     #>(LB567-1)
          pha
          lda     #<(LB567-1)
@@ -1868,7 +1869,7 @@ Extended_IRQ1_Vector:
 
          rts
 
-@LB567:  phx
+LB567:  phx
          ldx     sheila_USRVIA_orb
          phy
          tay
@@ -2410,7 +2411,7 @@ LB965:   .byte   %01111101 ; 125 0x7D
          .byte   %01101001 ; 105 0x69
          .byte   %01100111 ; 103 0x67
          .byte   %01100100 ; 100 0x64
-         .byte   %01100010 ; 
+         .byte   %01100010 ;
          .byte   %01011111
          .byte   %01011101
          .byte   %01011010
@@ -2427,7 +2428,7 @@ LB965:   .byte   %01111101 ; 125 0x7D
          .byte   %00111111
          .byte   %00111100
          .byte   %00111010
-         .byte   %00110111 ; 
+         .byte   %00110111 ;
          .byte   %00110101 ; 53 0x35
          .byte   %00110010 ; 50 0x32
          .byte   %00110000 ; 48 0x30
@@ -2437,7 +2438,7 @@ LB965:   .byte   %01111101 ; 125 0x7D
          .byte   %00000010 ; 2
          .byte   %00000100 ; 4
 
-LB98A:   .byte   %10000000  ; this and the next table are always 640 for MODE 0 1 2 
+LB98A:   .byte   %10000000  ; this and the next table are always 640 for MODE 0 1 2
          .byte   %10000000
          .byte   %10000000
 LB98D:   .byte   %00000010
@@ -2471,7 +2472,7 @@ LB9A4:   .byte   %00011100 ;28
          .byte   %00000100 ;4
          .byte   %00000100 ;4
 LB9A8:                          ; 3 tables of 256 bytes one for each mode in groups of 64
-                                ; pointer sprite 
+                                ; pointer sprite
                                 ; cross, magnify glass, north west arrow, North east arrow
          .byte   %00000000
          .byte   %00000000
@@ -3188,7 +3189,7 @@ LB9A8:                          ; 3 tables of 256 bytes one for each mode in gro
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
-        
+
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
@@ -3253,7 +3254,7 @@ LB9A8:                          ; 3 tables of 256 bytes one for each mode in gro
          .byte   %00000000
          .byte   %00000000
 
-LBCA8:         
+LBCA8:
          .byte   %11111100
          .byte   %11111100
          .byte   %11111100
@@ -3969,7 +3970,7 @@ LBCA8:
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
-         
+
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111

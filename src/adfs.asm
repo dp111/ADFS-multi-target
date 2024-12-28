@@ -53,6 +53,10 @@
 
 	.ifdef HD_SCSI_VFS
 		.export SCSI_WaitforReq_noCLI
+		.export L8C7A
+		.export CommandExecXY
+		.export ErrorEscapeACKReloadFSM
+		.export ReloadFSMandDIR_ThenBRK
 	.endif
 
 ;; TODO:
@@ -2522,7 +2526,7 @@ L8C74:		lda	($B6),Y				; Copy length/exec/load
 		sta	WKSP_ADFS_215_DSKOPSAV_RET,X			; to workspace
 		dey
 		dex
-L8C7A:		
+L8C7A:
 		bpl	L8C74				; Loop for 12 bytes
 		ldy	#$0D
 		ldx	#$0B
