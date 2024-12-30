@@ -8,9 +8,12 @@ __CONFIG_INC__:
 TARGETOS	:=	3		; 3=Master
 HD_SCSI		:=	1		; VFS SCSI drivers
 HD_SCSI_VFS	:=	1
-HD_SCSI_VFS_NO_INVERT := 1 ; Stop normal VFS inverting of data. 
+HD_SCSI_VFS_NO_INVERT := 1 ; Stop normal VFS inverting of data.
+;VFS_TRIM_REDUNDANT :=0 ; Remove code that is unreachable
+VFS_BUG_FIX :=  1 		; fix bugs in VFS
 
-HDDBASE=$FC44		; VFS controller
+
+HDDBASE=$FC40		; VFS controller
 VERBASE=$171		; Master VFS
 
 USE65C12	:=	1		; use 65C12 opcodes

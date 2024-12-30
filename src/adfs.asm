@@ -1464,9 +1464,10 @@ L8646:		plp
 		plp
 		jmp	L863D
 ;;************************* This code here is unreachable in VFS *************************
-.ifndef HD_SCSI_VFS
+.if .def(VFS_TRIM_REDUNDANT)
+
+.else
 L865B:
-.endif
      	ldx	#$FF
 		stx	$B3
 		inx
@@ -1588,6 +1589,7 @@ L8723:		ldx	$B3
 		sta	$B3
 L872C:		ldx	$B2
 		jmp	L8660
+.endif
 ;; ************************* End of VFS unreachable code *************************
 ;;
 L8731:		inc	$B4
@@ -5548,10 +5550,10 @@ L9B94:
 		php
 		sei
 		jsr	swap7PWSP_373_N933
-		lda	SYSVARS_291_ILACE		; get interlace flag?
+		lda	SYSVARS_291_ILACE		; get interlace flag
 		beq	VFS_L91B2
 		jmp	swapP373N933brkTurnIlaceOn
-VFS_L91B2:	sta	WKSP_VFS_93A_ILACE_SAVE		; save interlace flag?
+VFS_L91B2:	sta	WKSP_VFS_93A_ILACE_SAVE		; save interlace flag
 		jsr	swap7PWSP_373_N933
 		plp
 		stz	WKSP_ADFS_22F

@@ -1096,7 +1096,11 @@ VFSstarMOUSE:
          sta     VFS_N900_MouseBounds+2
          sta     VFS_N900_MouseBounds+3
          rts
-
+; *POINTER (0/1/2)
+; ----------------
+; *POINTER 0 - hides pointer
+; *POINTER 1 - shows pointer (default)
+; *POINTER 0 - hides pointer and turns off *MOUSE
 VFSstarPOINTER:
          jsr     setYeq0
          jsr     skipCommaOrSpace
@@ -1147,27 +1151,29 @@ LB022:   lda     $0909
          lda     VFS_N932_ACCON_SAVE
          sta     sheila_ACCON
          rts
-
-LB045:   lda     VFS_N904_MousePos
+; Update pointer if mouse has moved
+; ---------------------------------
+LB045:   lda     VFS_N904_MousePos      ; Current ADVAL(7) low byte
          cmp     VFS_N90E_MousePos2
-         bne     @LB065
-         lda     VFS_N904_MousePos+2
+         bne     @LB065                 ; Mouse X has moved
+         lda     VFS_N904_MousePos+2    ; Current ADVAL(8) low byte
          cmp     VFS_N90E_MousePos2+2
-         bne     @LB065
-         lda     VFS_N904_MousePos+1
+         bne     @LB065                 ; Mouse Y has moved
+         lda     VFS_N904_MousePos+1    ; Current ADVAL(7) high byte
          cmp     VFS_N90E_MousePos2+1
-         bne     @LB065
-         lda     VFS_N904_MousePos+3
+         bne     @LB065                 ; Mouse X has moved
+         lda     VFS_N904_MousePos+3    ; Current ADVAL(8) high byte
          cmp     VFS_N90E_MousePos2+3
-         beq     LB021
+         beq     LB021                  ; Mouse Y has NOT moved
+; Mouse has moved
 @LB065:  lda     sheila_ACCON
          sta     VFS_N932_ACCON_SAVE
          and     #$fb
          bit     #$02
          beq     @LB073
-         ora     #$04
+         ora     #$04                   ; select shadow memory for access
 @LB073:  sta     sheila_ACCON
-         lda     VFS_N904_MousePos+2
+         lda     VFS_N904_MousePos+2    ; Copy current mouse XY to previous mouse XY
          sta     VFS_N90E_MousePos2+2
          lda     VFS_N904_MousePos+3
          sta     VFS_N90E_MousePos2+3
@@ -1176,13 +1182,13 @@ LB045:   lda     VFS_N904_MousePos
          lda     VFS_N904_MousePos+1
          sta     VFS_N90E_MousePos2+1
          cmp     VFS_N900_MouseBounds+1
-         bcc     @LB0A6
+         bcc     @LB0A6                 ; If within Y limit continue
          beq     @LB097
          bcs     @LB09F
 
 @LB097:  lda     VFS_N904_MousePos
          cmp     VFS_N900
-         bcc     @LB0A6
+         bcc     @LB0A6                 ; If within X limit, continue
 @LB09F:  lda     $090b
          ora     #$01
          bne     @LB0AB
@@ -1755,14 +1761,14 @@ LB44C:   lda     VFS_N916_MouseY+1
          rts
 OSBYTE_Extended_Vectorcode:
          cmp     #$80
-         beq     @LB50A
+         beq     @LB50A                 ; Jump with ADVAL
 @LB4BA:  pha
          lda     $0d98
-         cmp     #$ff
+         cmp     #$ff                   ; Jump if was exteneded
          beq     @LB4C6
          pla
-         jmp     ($0d97)
-
+         jmp     ($0d97)                ; jump to old vector
+; Old BYTEV was extended, fiddle around to vector via it
 @LB4C6:  php
          sei
          phx
@@ -1805,17 +1811,18 @@ OSBYTE_Extended_Vectorcode:
          pla
          jmp     $ff4e
 
+; ADVAL handler
 @LB50A:  cpx     #$09
-         beq     @LB52F
-         bcs     @LB4BA
+         beq     @LB52F     ; ADVAL(9) - read buttons
+         bcs     @LB4BA     ; ADVAL>9, pass on to oldBYTEV
          cpx     #$05
-         bcc     @LB4BA
+         bcc     @LB4BA     ; ADVAL<5, pass on to oldBYTEV
          php
          sei
          jsr     swapPage9AndPrivWkspP3
          txa
          asl     A
-         adc     #$f6
+         adc     #$f6       ; Index into coordinates
          tay
          lda     VFS_N900,Y
          tax
@@ -1827,15 +1834,15 @@ OSBYTE_Extended_Vectorcode:
 @LB52B:  lda     #$80
          clv
          rts
-
+; ADVAL(9) - read buttons
 @LB52F:  php
          sei
          jsr     swapPage9AndPrivWkspP3
          jsr     LB65B
          lda     sheila_USRVIA_orb
          cpx     #$00
-         beq     @LB542
-         rol     A
+         beq     @LB542         ; If &00, buttons in b0-b3
+         rol     A              ; Move buttons from b5-b6 into b0-b3
          rol     A
          rol     A
          rol     A
@@ -1849,17 +1856,17 @@ OSBYTE_Extended_Vectorcode:
 
 Extended_IRQ1_Vector:
          cld
-         lda     sheila_USRVIA_ier
+         lda     sheila_USRVIA_ier   ; Check user port CB1/CB2
          and     sheila_USRVIA_ier-1
          and     #$18
-         bne     LB567
+         bne     LB567                              ; Mouse moved
          lda     #>(LB567-1) ; rts_call_via_rti
          pha
          lda     #<(LB567-1) ; rts_call_via_rti
          pha
          php
          lda     $fc
-         jmp     ($0d9d)
+         jmp     ($0d9d)                ; Pass on to oldIRQ1V
 
          rts
 
@@ -1955,12 +1962,13 @@ LB567:  phx
          rts
 
 Serv15_Poll100Hz:
+; Check if mouse has moved, if so, move pointer to follow it
          php
-         dec     VFS_0D95_20Hz_CTDN
+         dec     VFS_0D95_20Hz_CTDN     ; Dec. 20Hz ticker, exit if >=0
          bpl     @poh2
          pha
          lda     #$04
-         sta     VFS_0D95_20Hz_CTDN
+         sta     VFS_0D95_20Hz_CTDN     ; Reset ticker to 4
          lda     VFS_0D94_CTDN_QQQQQ
          bmi     @sk2
          lda     VFS_0D93_CTDN_SEARCH
@@ -1972,7 +1980,7 @@ Serv15_Poll100Hz:
          phx
          phy
          jsr     PreserveZpAndPage9
-         jsr     LB67E
+         jsr     LB67E                  ; Insert keypress if button state has changed
          lda     $0909
          beq     @poh4
          jsr     LB045
@@ -1987,63 +1995,70 @@ Serv15_Poll100Hz:
 @poh:    plp
          rts
 
+;Check pointing device type
 LB65B:   ldx     $090a
-         bpl     @LB67D
+         bpl     @LB67D         ;  Exit if b7=0
          ldx     #$00
          lda     sheila_USRVIA_orb
          and     #$e0
          cmp     #$e0
-         bne     @LB678
+         bne     @LB678             ; b5-b7 not all set, exit with X=&07
          lda     sheila_USRVIA_orb
          and     #$18
          cmp     #$18
-         bne     @LB67A
+         bne     @LB67A             ; b3-b4 not all set, exit with X=&00
          ldx     #$07
-         bne     @LB67D
+         bne     @LB67D             ; Exit with X=&07
 
 @LB678:  ldx     #$07
 @LB67A:  stx     $090a
 @LB67D:  rts
 
-LB67E:   jsr     LB65B
-         lda     sheila_USRVIA_orb
-         and     @LB6C7,X
+;Check if button state has changed
+LB67E:   jsr     LB65B              ; Get device type to X
+         lda     sheila_USRVIA_orb  ; Get buttons
+         and     @LB6C7,X           ; Mask with button position for this device
          cmp     $090d
-         beq     @LB698
+         beq     @LB698             ; Button state is the same
          cmp     $090c
          sta     $090c
          beq     @LB697
-         sta     $090d
+         sta     $090d              ; Set last button state to current button state
 @LB697:  rts
 
-@LB698:  stz     $090d
+@LB698:  stz     $090d              ; Clear last button state
          lda     $090c
-         cmp     @LB6C7,X
-         beq     @LB697
-         ldy     #$0d
+         cmp     @LB6C7,X           ; Compare current button state with button locations
+         beq     @LB697             ; No buttons pressed, exit
+         ldy     #$0d               ; Prepare Y=<cr> for button 1
          and     @LB6C8,X
-         beq     @LB6BF
+         beq     @LB6BF             ; Button 1 pressed
          lda     $090c
-         ldy     #$c0
+         ldy     #$c0               ; Prepare Y=f0 for button 3
          and     @LB6CA,X
-         beq     @LB6BF
+         beq     @LB6BF             ; Button 3 pressed
          lda     #OSBYTE_DB_RW_TABCODE
          ldx     #$00
          ldy     #$ff
-         jsr     OSBYTE
+         jsr     OSBYTE             ; Get TAB key character
          txa
-         tay
+         tay                        ; TAB char for button 2
 @LB6BF:  lda     #OSBYTE_99_INS_BUF_CKESC
          ldx     #$00
-         jmp     OSBYTE
+         jmp     OSBYTE             ; Insert into keyboard buffer
 
-         .byte   $18
-@LB6C7:  .byte   $07
-@LB6C8:  .byte   $01
-         .byte   $02
-@LB6CA:  .byte   $04
-LB6CB:   .byte   $10
-LB6CC:   .byte   $08
+; first input device
+         .byte   $18            ; Direction bits ( is this actually used?)
+
+@LB6C7:  .byte   $07            ; button mask
+@LB6C8:  .byte   $01            ; button 1
+         .byte   $02            ;
+@LB6CA:  .byte   $04            ; button 3
+
+LB6CB:   .byte   $10            ; Xdir
+LB6CC:   .byte   $08            ; Ydir
+
+; second input device
          .byte   $05
          .byte   $e0
          .byte   $20
@@ -2163,7 +2178,7 @@ parse16bitDecXA:
          sta     $093e
          lda     $af        ;get back low byte
          rts
-
+; *TMAX <x>,<y>
 VFSstarTMAX:
          jsr     setYeq0
          jsr     parse16bitDecXA ;get first parameter
