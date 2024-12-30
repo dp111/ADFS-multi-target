@@ -1198,9 +1198,10 @@ strExecAbbrev:						; L84BD
 		.byte	$0D
 ;;
 strSpoolAbbrev:
-.assert >(strExecAbbrev) = >(*), error, "adfs.asm : Exec/Spool table run over page boundary"
 		.byte	"SP."				; Abbreviation of 'Spool'
 		.byte	$0D
+
+.assert >(strExecAbbrev) = >(strSpoolAbbrev), error, "adfs.asm : Exec/Spool table run over page boundary"
 
 ; OSBYTE READ
 ; -----------

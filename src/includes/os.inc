@@ -95,7 +95,6 @@ TUBE_RELEASE			= $80
 TUBE_CLAIM 				= $C0
 
 CMOS_ADFS				= $B
-CMOS_PER_ROM_BASE		= $14		; note: this appears to be a VFS bug, should be $30 according to https://beebwiki.mdfs.net/CMOS_configuration_RAM_allocation
 
 .if TARGETOS > 1
 CONFIG_BIT_FD_SPEED	= $01
