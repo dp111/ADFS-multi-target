@@ -1100,7 +1100,7 @@ VFSstarMOUSE:
 ; ----------------
 ; *POINTER 0 - hides pointer
 ; *POINTER 1 - shows pointer (default)
-; *POINTER 0 - hides pointer and turns off *MOUSE
+; *POINTER 2 - hides pointer and turns off *MOUSE
 VFSstarPOINTER:
          jsr     setYeq0
          jsr     skipCommaOrSpace
@@ -1291,7 +1291,7 @@ LB045:   lda     VFS_N904_MousePos      ; Current ADVAL(7) low byte
          ldy     $89
          and     ($8c),Y            ; mask pixels
          ldy     $8a
-         ora     (ZP_EXTRA_BASE),Y  ; orr in spite
+         ora     (ZP_EXTRA_BASE),Y  ; or in spite
          ldy     $89
          sta     ($8c),Y            ; save back to screen
          inc     $8a
@@ -1507,51 +1507,51 @@ LB2DD:   jsr     RestoreZpAndPage9
          .byte $ad
          .asciiz "Bad MODE"
 
-LB2ED:   sta     $090b
+LB2ED:   sta     $090b                  ; Entry a= 255 , 0 1 2 ?
          asl     A
          asl     A
          asl     A
          asl     A
          asl     A
-         asl     A
+         asl     A                      ; *64
          tay
          lda     VFS_N908_MODESAVE
          cmp     #$03
          bcs     LB2DD
          pha
          clc
-         adc     #>LB9A8                       ; mouse symbol table
+         adc     #>LB9A8                       ; mouse symbol table +  mode*256
          sta     ZP_EXTRA_BASE+1
          lda     #<LB9A8
          sta     ZP_EXTRA_BASE
          pla
          clc
-         adc     #>LBCA8
+         adc     #>LBCA8                       ; mask table +  mode*256
          sta     $87
          lda     #<LBCA8
          sta     $86
          ldx     ZP_MOS_CURROM
          lda     SYSVARS_DF0_PWSKPTAB,X
          inc     A
-         sta     $8d
+         sta     $8d                          ; >workspace+1
          stz     $8c
-         sty     $8a
-         ldy     #$00
+         sty     $8a                          ; table index ( which one of the 4 pointers)
+         ldy     #$00                         ; why not STZ ????
          sty     $89
 @LB322:  ldy     $8a
-         lda     (ZP_EXTRA_BASE),Y
+         lda     (ZP_EXTRA_BASE),Y          ; get mouse pointer byte
          ldy     $89
-         sta     ($8c),Y
+         sta     ($8c),Y            ; store mouse pointer byte wksp+1
          ldy     $8a
-         lda     ($86),Y
+         lda     ($86),Y            ; get mouse mask byte
          ldy     $89
          inc     $8d
-         sta     ($8c),Y
-         dec     $8d
-         inc     $8a
-         inc     $89
+         sta     ($8c),Y            ; store mouse mask byte at wksp+2
+         dec     $8d                ; restore wksp+2 to wksp+1
+         inc     $8a                ; inc get pointer
+         inc     $89                ; inc store pointer
          ldy     $89
-         cpy     #$40
+         cpy     #$40               ; do 64 bytes
          bne     @LB322
          stz     ZP_EXTRA_BASE
          lda     #$40
@@ -1575,12 +1575,12 @@ LB2ED:   sta     $090b
          sta     $87
          dec     $88
 @LB36B:  lda     VFS_N908_MODESAVE
-         beq     @LB3C1
+         beq     @LB3C1         ; mode 0
          cmp     #$01
-         beq     @LB377
-         jmp     @LB3FE
+         beq     @LB377         ; mode 1
+         jmp     @LB3FE         ; mode 2
 
-@LB377:  jsr     @LB37D
+@LB377:  jsr     @LB37D         ; mode 1
          jsr     @LB37D
 @LB37D:  ldx     #$00
 @LB37F:  lda     $88
@@ -1624,7 +1624,7 @@ LB2ED:   sta     $090b
          inc     $87
 @LB3C0:  rts
 
-@LB3C1:  jsr     @LB3C7
+@LB3C1:  jsr     @LB3C7     ; mode 0
          jsr     @LB3C7
 @LB3C7:  jsr     @LB3D8
          lda     ZP_EXTRA_TMPPTR+1
@@ -1659,7 +1659,7 @@ LB2ED:   sta     $090b
          bne     @LB3DA
          rts
 
-@LB3FE:  jsr     @LB440
+@LB3FE:  jsr     @LB440     ; mode 2
          jsr     @LB407
          jmp     @LB440
 
@@ -2483,7 +2483,7 @@ LB9A4:   .byte   %00011100 ;28
 LB9A8:                          ; 3 tables of 256 bytes one for each mode in groups of 64
                                 ; pointer sprite
                                 ; cross, magnify glass, north west arrow, North east arrow
-         .byte   %00000000
+         .byte   %00000000  ; mode 0 pointer 0
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
@@ -2548,7 +2548,7 @@ LB9A8:                          ; 3 tables of 256 bytes one for each mode in gro
          .byte   %00000000
          .byte   %00000000
 
-         .byte   %00000000
+         .byte   %00000000 ; mode 0 pointer 1
          .byte   %00000000
          .byte   %00000011
          .byte   %00000011
@@ -2595,7 +2595,6 @@ LB9A8:                          ; 3 tables of 256 bytes one for each mode in gro
          .byte   %11110000
          .byte   %00111100
          .byte   %00111100
-         .byte   %00000000
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
@@ -2614,6 +2613,7 @@ LB9A8:                          ; 3 tables of 256 bytes one for each mode in gro
          .byte   %00000000
          .byte   %00000000
 
+         .byte   %00000000  ; mode 0 pointer 2
          .byte   %00110000
          .byte   %00111100
          .byte   %00111111
@@ -2677,8 +2677,8 @@ LB9A8:                          ; 3 tables of 256 bytes one for each mode in gro
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
-         .byte   %00000000
 
+         .byte   %00000000      ; mode 0 pointer 3
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
@@ -2742,73 +2742,73 @@ LB9A8:                          ; 3 tables of 256 bytes one for each mode in gro
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
+
+         .byte   %00000000      ; mode 1 pointer 0
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000111
+         .byte   %00000111
+         .byte   %00000111
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00001110
+         .byte   %00001110
+         .byte   %00001110
+         .byte   %00001110
+         .byte   %00001110
+         .byte   %00001111
+         .byte   %00001111
+         .byte   %00001111
+         .byte   %00001110
+         .byte   %00001110
+         .byte   %00001110
+         .byte   %00001110
+         .byte   %00001110
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00001100
+         .byte   %00001100
+         .byte   %00001100
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
          .byte   %00000000
 
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000111
-         .byte   %00000111
-         .byte   %00000111
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00001110
-         .byte   %00001110
-         .byte   %00001110
-         .byte   %00001110
-         .byte   %00001110
-         .byte   %00001111
-         .byte   %00001111
-         .byte   %00001111
-         .byte   %00001110
-         .byte   %00001110
-         .byte   %00001110
-         .byte   %00001110
-         .byte   %00001110
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00001100
-         .byte   %00001100
-         .byte   %00001100
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-
+         .byte   %00000000      ; mode 1 pointer 1
          .byte   %00000000
          .byte   %00000001
          .byte   %00000001
@@ -2872,8 +2872,8 @@ LB9A8:                          ; 3 tables of 256 bytes one for each mode in gro
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
-         .byte   %00000000
 
+         .byte   %00000000      ; mode 1 pointer 2
          .byte   %00000100
          .byte   %00000110
          .byte   %00000111
@@ -2937,8 +2937,8 @@ LB9A8:                          ; 3 tables of 256 bytes one for each mode in gro
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
-         .byte   %00000000
 
+         .byte   %00000000      ; mode 1 pointer 3
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
@@ -3002,8 +3002,8 @@ LB9A8:                          ; 3 tables of 256 bytes one for each mode in gro
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
-         .byte   %00000000
 
+         .byte   %00000000      ; mode 2 pointer 0
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
@@ -3041,201 +3041,6 @@ LB9A8:                          ; 3 tables of 256 bytes one for each mode in gro
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
-         .byte   %00000010
-         .byte   %00000010
-         .byte   %00000010
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000001
-         .byte   %00000001
-         .byte   %00000001
-         .byte   %00000001
-         .byte   %00000001
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000011
-         .byte   %00000011
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000011
-         .byte   %00000011
-         .byte   %00000001
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000010
-         .byte   %00000010
-         .byte   %00000010
-         .byte   %00000010
-         .byte   %00000010
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000010
-         .byte   %00000010
-         .byte   %00000010
-         .byte   %00000010
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-
-         .byte   %00000001
-         .byte   %00000001
-         .byte   %00000001
-         .byte   %00000001
-         .byte   %00000001
-         .byte   %00000001
-         .byte   %00000001
-         .byte   %00000001
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000010
-         .byte   %00000010
-         .byte   %00000011
-         .byte   %00000011
-         .byte   %00000010
-         .byte   %00000010
-         .byte   %00000001
-         .byte   %00000001
-         .byte   %00000001
-         .byte   %00000001
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000010
-         .byte   %00000010
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000001
-         .byte   %00000001
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000001
-         .byte   %00000001
-         .byte   %00000011
-         .byte   %00000011
-         .byte   %00000001
-         .byte   %00000001
-         .byte   %00000010
-         .byte   %00000010
-         .byte   %00000010
-         .byte   %00000010
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000010
-         .byte   %00000010
-         .byte   %00000010
-         .byte   %00000010
-         .byte   %00000010
          .byte   %00000010
          .byte   %00000010
          .byte   %00000010
@@ -3263,8 +3068,203 @@ LB9A8:                          ; 3 tables of 256 bytes one for each mode in gro
          .byte   %00000000
          .byte   %00000000
 
-LBCA8:
-         .byte   %11111100
+         .byte   %00000000          ; mode 2 pointer 1
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000001
+         .byte   %00000001
+         .byte   %00000001
+         .byte   %00000001
+         .byte   %00000001
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000011
+         .byte   %00000011
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000011
+         .byte   %00000011
+         .byte   %00000001
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000010
+         .byte   %00000010
+         .byte   %00000010
+         .byte   %00000010
+         .byte   %00000010
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000010
+         .byte   %00000010
+         .byte   %00000010
+         .byte   %00000010
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+
+         .byte   %00000000      ; mode 2 pointer 2
+         .byte   %00000001
+         .byte   %00000001
+         .byte   %00000001
+         .byte   %00000001
+         .byte   %00000001
+         .byte   %00000001
+         .byte   %00000001
+         .byte   %00000001
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000010
+         .byte   %00000010
+         .byte   %00000011
+         .byte   %00000011
+         .byte   %00000010
+         .byte   %00000010
+         .byte   %00000001
+         .byte   %00000001
+         .byte   %00000001
+         .byte   %00000001
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000010
+         .byte   %00000010
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+
+         .byte   %00000000      ; mode 2 pointer 3
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000001
+         .byte   %00000001
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000001
+         .byte   %00000001
+         .byte   %00000011
+         .byte   %00000011
+         .byte   %00000001
+         .byte   %00000001
+         .byte   %00000010
+         .byte   %00000010
+         .byte   %00000010
+         .byte   %00000010
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000010
+         .byte   %00000010
+         .byte   %00000010
+         .byte   %00000010
+         .byte   %00000010
+         .byte   %00000010
+         .byte   %00000010
+         .byte   %00000010
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+
+LBCA8:                               ; mouse pointer mask table
+         .byte   %11111100        ; mode 0 pointer mask 0
          .byte   %11111100
          .byte   %11111100
          .byte   %11111100
@@ -3306,7 +3306,6 @@ LBCA8:
          .byte   %00000011
          .byte   %00000011
          .byte   %00000011
-         .byte   %11111111
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
@@ -3330,6 +3329,7 @@ LBCA8:
          .byte   %11111111
          .byte   %11111111
 
+         .byte   %11111111      ; mode 0 pointer mask 1
          .byte   %11111100
          .byte   %11110000
          .byte   %11110000
@@ -3393,9 +3393,9 @@ LBCA8:
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
-         .byte   %00001111
-         .byte   %00000011
 
+         .byte   %00001111      ; mode 0 pointer mask 2
+         .byte   %00000011
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
@@ -3458,10 +3458,10 @@ LBCA8:
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
 
+         .byte   %11111111      ; mode 0 pointer mask 3
+         .byte   %11111111
+         .byte   %11111111
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
@@ -3524,7 +3524,7 @@ LBCA8:
          .byte   %11111111
          .byte   %11111111
 
-         .byte   %11101110
+         .byte   %11101110      ; mode 1 pointer mask 0
          .byte   %11101110
          .byte   %11101110
          .byte   %11101110
@@ -3566,7 +3566,6 @@ LBCA8:
          .byte   %00010001
          .byte   %00010001
          .byte   %00010001
-         .byte   %11111111
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
@@ -3590,6 +3589,7 @@ LBCA8:
          .byte   %11111111
          .byte   %11111111
 
+         .byte   %11111111       ; mode 1 pointer mask 1
          .byte   %11101110
          .byte   %11001100
          .byte   %11001100
@@ -3654,7 +3654,7 @@ LBCA8:
          .byte   %11111111
          .byte   %11111111
 
-         .byte   %00110011
+         .byte   %00110011     ; mode 1 pointer mask 2
          .byte   %00010001
          .byte   %00000000
          .byte   %00000000
@@ -3718,8 +3718,8 @@ LBCA8:
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
-         .byte   %11111111
 
+         .byte   %11111111      ; mode 1 pointer mask 3
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
@@ -3783,8 +3783,8 @@ LBCA8:
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
-         .byte   %11111111
 
+         .byte   %11111111      ; mode 2 pointer mask 0
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
@@ -3830,137 +3830,6 @@ LBCA8:
          .byte   %01010101
          .byte   %01010101
          .byte   %01010101
-         .byte   %01010101
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-
-         .byte   %10101010
-         .byte   %10101010
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %10101010
-         .byte   %10101010
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %10101010
-         .byte   %10101010
-         .byte   %10101010
-         .byte   %10101010
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %01010101
-         .byte   %01010101
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %01010101
-         .byte   %01010101
-         .byte   %01010101
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %01010101
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %01010101
-         .byte   %01010101
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %00000000
-         .byte   %10101010
-         .byte   %10101010
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %01010101
-         .byte   %01010101
-         .byte   %11111111
-         .byte   %11111111
-         .byte   %01010101
-         .byte   %01010101
-         .byte   %01010101
-         .byte   %01010101
-         .byte   %00000000
-         .byte   %00000000
          .byte   %01010101
          .byte   %11111111
          .byte   %11111111
@@ -3980,6 +3849,137 @@ LBCA8:
          .byte   %11111111
          .byte   %11111111
 
+         .byte   %11111111       ; mode 2 pointer mask 1
+         .byte   %10101010
+         .byte   %10101010
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %10101010
+         .byte   %10101010
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %10101010
+         .byte   %10101010
+         .byte   %10101010
+         .byte   %10101010
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %01010101
+         .byte   %01010101
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %01010101
+         .byte   %01010101
+         .byte   %01010101
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %01010101
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+
+         .byte   %00000000    ; mode 2 pointer mask 2
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %01010101
+         .byte   %01010101
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %10101010
+         .byte   %10101010
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %01010101
+         .byte   %01010101
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %01010101
+         .byte   %01010101
+         .byte   %01010101
+         .byte   %01010101
+         .byte   %00000000
+         .byte   %00000000
+         .byte   %01010101
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+         .byte   %11111111
+
+         .byte   %11111111         ; mode 2 pointer mask 3
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
@@ -4021,7 +4021,6 @@ LBCA8:
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
-         .byte   %11111111
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
@@ -4045,6 +4044,7 @@ LBCA8:
          .byte   %11111111
          .byte   %11111111
 ; end of sprite tables
+         .byte   %11111111
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
