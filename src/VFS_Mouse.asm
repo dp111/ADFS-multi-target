@@ -356,7 +356,7 @@ FCMD_Single_CharA:
 ;* with <CR>                                                                   *
 ;*******************************************************************************
 FCMD_TextBuf:
-         lda     #SCSICMD_CA_VENDOR_FCMD ;command $CA ; TODO: what is this command? the actual param seems to be in the command buffer
+         lda     #SCSICMD_CA_VENDOR_FCMD ;command $CA
 sendCmdATxtBuf:
          ldx     #<WKSP_VFS_E00_TXTBUF
          ldy     #>WKSP_VFS_E00_TXTBUF

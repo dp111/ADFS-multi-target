@@ -477,8 +477,7 @@ CommandSetRetries:					; L8099
 		lda	WKSP_ADFS_200			; Get default retries
 		sta	ZP_ADFS_RETRY_CTDN		; Set current retries
 L809Erts:	rts
-.else
-CommandSetRetries = 0	; TODO: bodge - remove
+
 .endif
 
 
@@ -1199,12 +1198,9 @@ strExecAbbrev:						; L84BD
 		.byte	$0D
 ;;
 strSpoolAbbrev:
+.assert >(strExecAbbrev) = >(*), error, "adfs.asm : Exec/Spool table run over page boundary"
 		.byte	"SP."				; Abbreviation of 'Spool'
 		.byte	$0D
-;;TODO:OBJ: POST BUILD CHECK?
-;;.if (>strExecAbbrev) <> (>strSpoolAbbrev)
-;;		.error	"Exec/Spool table run over page boundary"
-;;.endif
 
 ; OSBYTE READ
 ; -----------
@@ -2000,9 +1996,6 @@ L8988:		jsr	ReloadFSMandDIR_ThenBRK
 		.byte	$B0				; ERR=176
 		.byte	"Bad rename"
 		.byte	$00
-
-.else
-L8988 = 0	;;;;; TODO: remove these?
 .endif
 L8997:		lda	WKSP_ADFS_2A2
 		sec
@@ -2734,14 +2727,7 @@ L8D74:
 		bpl	L8D2E				; Loop through all channels
 		inx					; Return with X=&00, EQ
 		rts
-.else
-	;;TODO: Remove VFS
-L8CD4 = 0
-L8CED = 0
-L8CF4 = 0
-L8D1B = 0
-L8D2C = 0
-L8D5E = 0
+
 .endif ; !.def(VFS)
 
 L8D79:		ldy	#$00
@@ -3090,19 +3076,7 @@ L8F99:		lda	L883C,X				; Copy control block to load '$'
   .endif
 		lda	#$00
 		rts
-.else
-		;;; TODO:VFS:REMOVE
-L8DFE = $DEAD
-L8E01 = $DEAD
-L8E7A = $DEAD
-L8E96 = $DEAD
-L8F57 = $DEAD
-L8F5D = $DEAD
-L8F63 = $DEAD
-L8F7F = $DEAD
-L8F88 = $DEAD
-L8F8B = $DEAD
-L8F91 = $DEAD
+
 .endif ; !.def(VFS)
 
 L8FE8:		jsr	L8870
@@ -3483,13 +3457,6 @@ L9232:		lda	$B6
 		jsr	L84E1
 		jsr	L8F91
 		jmp	L89D5
-.else
-	;; TODO:VFS:REMOVE
-L9085	= $B00B
-L910A	= $B00B
-L9127	= $B00B
-L9131	= $B00B
-L921B	= $B00B
 
 .endif ; ndef VFS
 ;;
@@ -3855,11 +3822,9 @@ L942A:		.byte	"Off "
 L942E:		.byte	"Load"
 L9432:		.byte	"Run "
 L9436:		.byte	"Exec"
-;;TODO:OBJ: POST BUILD CHECK?
-;;.if >L942A <> >L9436
-;;							;TODO reinstate this!!!
-;;		print	"Option strings run over page boundary"
-;;.endif
+
+.assert >(L942A) = >(L9436), error, "adfs.asm : Option strings run over page boundary"
+
 ;;
 ;; FSC 9 - *EX
 ;; =============
@@ -4780,15 +4745,6 @@ L9A36:
 L9A47:		pla
 		pla
 		jmp	L89D8
-;;
-.else
-	;;;TODO:VFS:REMOVE
-L95AB = $BEEF
-L96AC = $BEEF
-L98B3 = $BEEF
-starACCESS = $BEEF
-starCDIR = $BEEF
-starDESTROY = $BEEF
 
 .endif ; ndef HD_SCSI_VFS
 
@@ -4999,11 +4955,7 @@ L9A9C:
 .endif ; TARGETOS
 		.byte	$0D
 
-;;TODO:OBJ: POST BUILD CHECK?
-;;.if >L9A92 <> >L9A9C
-;;		.error	"Boot strings run over page boundary"
-;;.endif
-
+.assert >(L9A92) = >(L9A9C), error, "adfs.asm : Boot strings run over page boundary"
 
 ;;
 ;;
@@ -6681,6 +6633,7 @@ L9FE7:		.byte	"(L)(W)(R)(E)"
 L9FF4:		.byte	"<Title>"
 L9FFB:		.byte	$00
 
+.assert >(L9FB1) = >(L9FFB), error, "adfs.asm : Help string table runs over page boundary"
 
 .ifdef HD_SCSI_VFS
 tbl_commands:
@@ -6698,15 +6651,6 @@ cmdLE:
 	.byte	"MOUNT",    >(starMOUNT-1)	, <(starMOUNT-1)	, $40
 	.byte	"",	    >(starRUN-1)	, <(starRUN-1)
 .endif
-
-;;TODO:OBJ: POST BUILD CHECK?
-;;.if >* <> >L9FB1
-;;		.warning	"***WARNING: Help string table runs over page boundary"
-;;		ORG	(P% AND &FF00)+256
-;;.endif
-
-
-
 
 ; FSC 7 - Handle Request
 ; ======================
@@ -8677,9 +8621,7 @@ LAAB9:
 
 		.segment "rom_main_5"
 .ifdef HD_SCSI_VFS
-	;TODO: VFS: REMOVE
-LAB03:
-LAB06:
+
 .else ;ndef HD_SCSI_VFS
 LAB03:		jsr	LACE6				; Check checksum
 LAB06:
@@ -8742,8 +8684,7 @@ LAB5BJmpGenerateError:
 
 		.segment "rom_main_6"
 .ifdef HD_SCSI_VFS
-;TODO:VFS:REMOVE
-LAB88:
+
 .else ;ndef HD_SCSI_VFS
 RestoreChanInXrts:
 		ldx	$C1				; Restore X, offset to channel info
@@ -9109,11 +9050,6 @@ LAE5B:		lda	$B8
 .ifdef HD_SCSI_VFS
 my_OSBPUT:
 		jmp	L830B
-LAE6D:	;TODO:VFS:REMOVE
-LAE68:
-LB17F:
-		rts
-brkNotOpenUpdate:
 .else
 
 LAE68:
@@ -9515,11 +9451,10 @@ LB14D:
 		pla
 		ldy	ZP_ADFS_C2_SAVE_Y
 		ldx	ZP_ADFS_C3_SAVE_X
-LB17F:		rts
-
 
 .endif ; ndef HD_SCSI_VFS
 
+LB17F:		rts
 
 LB180:		ldx	ZP_ADFS_CF_CHANNEL_OFFS
 		inc	WKSP_ADFS_37A_CH_PTR_L,X
@@ -10008,15 +9943,10 @@ LB51E:		lda	WKSP_ADFS_2C8,X			; Subtract from previous TIME
 		cmp	#$02				; &200cs? 5.12s?
 		bcc	LB545				; <5.12s, return leaving &C2C2 unchanged
 LB542:		sty	WKSP_ADFS_2C2			; >5.11s, set &C2C2 to &xx
-LB545:		rts
+.endif ;ndef HD_SCSI_VFS
 
-.else ; def HD_SCSI_VFS
 LB545:
 LB510:		rts
-	;TODO:VFS:REMOVE
-
-
-.endif ;ndef HD_SCSI_VFS
 
 LB546:		jsr	LB510				; Check elapsed time
 		lda	WKSP_ADFS_317_CURDRV

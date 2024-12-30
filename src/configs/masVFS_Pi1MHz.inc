@@ -13,7 +13,7 @@ HD_SCSI_VFS_NO_INVERT := 1 ; Stop normal VFS inverting of data.
 VFS_BUG_FIX :=  1 		; fix bugs in VFS
 
 
-HDDBASE=$FC40		; VFS controller
+HDDBASE=$FC44		; VFS controller
 VERBASE=$171		; Master VFS
 
 USE65C12	:=	1		; use 65C12 opcodes
