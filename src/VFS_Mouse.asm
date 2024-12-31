@@ -45,9 +45,17 @@ LV_FCMD_F_GOTOFRAME = $46   ;F command - goto frame XXXXX and play (term 'N') or
 LV_FCMD_Q_CHAPTER = $51     ;F command - Q - Play chapter sequence
 LV_FCMD_F_TERM_S_HALT = $53 ;Terminator for F command F - play, stop at this frame
 LV_FCMD_W_FastForwards = $57 ;F command - fast forward
-ZP_EXTRA_TMPPTR = $84
+
 ZP_EXTRA_BASE =  $84
-ZP_EXTR_PTR_Q =  $8e
+ZP_EXTR_PTR_A =  $86
+ZP_TEMP =        $88
+ZP_TEMP2 =       $89
+ZP_TEMP3 =       $8a
+; $8b not used
+ZP_EXTR_PTR_B =  $8c
+
+ZP_Previous_mouse_screenptr =  $8e ; Bit 7 clear if mouse screen is 0, bit 7 set if mouse screen is 1
+
 zp_vfsv_a8_textptr = $a8    ;Used in VFS video and mouse commands when parsing command lines
 zp_mos_txtptr =  $f2        ;MOS text pointer, along with Y register
 
@@ -1129,8 +1137,8 @@ VFSstarPOINTER:
          lda     $0909
          bne     LB021
          lda     #$ff
-         sta     ZP_EXTR_PTR_Q+1
-         jsr     LB2ED
+         sta     ZP_Previous_mouse_screenptr+1
+         jsr     Setup_mouse_pointer_workspace
          ldy     VFS_N904_MousePos
          dey
          sty     VFS_N90E_MousePos2
@@ -1147,7 +1155,7 @@ LB022:   lda     $0909
          beq     @LB038
          ora     #$04
 @LB038:  sta     sheila_ACCON
-         jsr     LB240
+         jsr     Restore_memory_under_mouse
          lda     VFS_N932_ACCON_SAVE
          sta     sheila_ACCON
          rts
@@ -1213,13 +1221,13 @@ LB045:   lda     VFS_N904_MousePos      ; Current ADVAL(7) low byte
          and     #$01
 @LB0C8:  cmp     $090b
          beq     @LB0D0
-         jsr     LB2ED
+         jsr     Setup_mouse_pointer_workspace   ; ( NB pointer type may have changed if the mouse has moved out of bounds )
 
 @LB0D0:  ldy     VFS_N904_MousePos
          lda     VFS_N908_MODESAVE
          cmp     #$02
          bne     @LB0E9
-         lda     VFS_N904_MousePos+1
+         lda     VFS_N904_MousePos+1    ; mode 2
          cmp     #$04
          bne     @LB0E9
          cpy     #$f8
@@ -1229,7 +1237,7 @@ LB045:   lda     VFS_N904_MousePos      ; Current ADVAL(7) low byte
          dey
          dey
 
-@LB0E9:  ldx     $090b
+@LB0E9:  ldx     $090b              ; mode 0 or 1
          tya
          sec
          sbc     LB9A0,X        ; 20,24, 4, 40
@@ -1250,28 +1258,28 @@ LB045:   lda     VFS_N904_MousePos      ; Current ADVAL(7) low byte
          ldy     ZP_MOS_CURROM
          lda     SYSVARS_DF0_PWSKPTAB,Y
          inc     A
-         sta     ZP_EXTRA_BASE+1
-         lda     LB990,X
+         sta     ZP_EXTRA_BASE+1        ; the mouse pointer as previously been copied to the workspace
+         lda     LB990,X                ; get pointer to the correct shifted sprite
          sta     ZP_EXTRA_BASE
-         jsr     LB240
+         jsr     Restore_memory_under_mouse
          lda     VFS_N912_MouseX
          sta     VFS_N914_MouseX2
          lda     VFS_N912_MouseX+1
          sta     VFS_N914_MouseX2+1
-         lda     $8d
+         lda     ZP_EXTR_PTR_B + 1
          pha
-         lda     $8c
+         lda     ZP_EXTR_PTR_B
          pha
-         lda     $8d
+         lda     ZP_EXTR_PTR_B + 1
          pha
-         lda     $8c
+         lda     ZP_EXTR_PTR_B
          pha
          ldx     #$00
-         stx     $8a
+         stx     ZP_TEMP3
 
 @LB13D:  ldy     #$00
-         sty     $89
-         lda     $8d
+         sty     ZP_TEMP2
+         lda     ZP_EXTR_PTR_B + 1
          bmi     @LB1A5
          cmp     #$30
          bcc     @LB199
@@ -1281,53 +1289,53 @@ LB045:   lda     VFS_N904_MousePos      ; Current ADVAL(7) low byte
          bcc     @LB155
          jmp     @LB1D4
 
-@LB155:  ldy     $89
-         lda     ($8c),Y            ; get screen byte
-         ldy     $8a
-         sta     ($86),Y            ; store old memory location
+@LB155:  ldy     ZP_TEMP2
+         lda     (ZP_EXTR_PTR_B),Y            ; get screen byte
+         ldy     ZP_TEMP3
+         sta     (ZP_EXTR_PTR_A ),Y            ; store old memory location
          inc     ZP_EXTRA_BASE+1
-         lda     (ZP_EXTRA_BASE),Y ; get sprite byte mask
+         lda     (ZP_EXTRA_BASE),Y             ; get sprite byte mask
          dec     ZP_EXTRA_BASE+1
-         ldy     $89
-         and     ($8c),Y            ; mask pixels
-         ldy     $8a
+         ldy     ZP_TEMP2
+         and     (ZP_EXTR_PTR_B),Y            ; mask pixels ( surely to the mask the other way around as A had the screen byte
+         ldy     ZP_TEMP3
          ora     (ZP_EXTRA_BASE),Y  ; or in spite
-         ldy     $89
-         sta     ($8c),Y            ; save back to screen
-         inc     $8a
-         lda     $8a
+         ldy     ZP_TEMP2
+         sta     (ZP_EXTR_PTR_B),Y            ; save back to screen
+         inc     ZP_TEMP3
+         lda     ZP_TEMP3
          and     #$0f
          beq     @LB1AE
-         inc     $89
-         lda     $89
+         inc     ZP_TEMP2
+         lda     ZP_TEMP2
          clc
-         adc     $8c
+         adc     ZP_EXTR_PTR_B
          and     #$07
          bne     @LB155
 
 @LB182:  ldy     VFS_N908_MODESAVE
-         lda     $8c
+         lda     ZP_EXTR_PTR_B
          and     #$f8
          clc
          adc     LB98A,Y ; Always 128   ( 640)
-         sta     $8c
-         lda     $8d
+         sta     ZP_EXTR_PTR_B
+         lda     ZP_EXTR_PTR_B + 1
          adc     LB98D,Y ; Always 2
-         sta     $8d
+         sta     ZP_EXTR_PTR_B + 1
          jmp     @LB13D
 
-@LB199:  lda     $8c
+@LB199:  lda     ZP_EXTR_PTR_B
          and     #$07
          clc
-         adc     $8a
-         sta     $8a
+         adc     ZP_TEMP3
+         sta     ZP_TEMP3
          jmp     @LB182
 
-@LB1A5:  lda     $8a
+@LB1A5:  lda     ZP_TEMP3
          and     #$f0
          clc
          adc     #$10
-         sta     $8a
+         sta     ZP_TEMP3
 
 @LB1AE:  lda     VFS_N912_MouseX
          clc
@@ -1338,14 +1346,14 @@ LB045:   lda     VFS_N904_MousePos      ; Current ADVAL(7) low byte
 @LB1BC:  pla
          clc
          adc     #$08
-         sta     $8c
+         sta     ZP_EXTR_PTR_B
          pla
          adc     #$00
-         sta     $8d
+         sta     ZP_EXTR_PTR_B + 1
          pha
-         lda     $8c
+         lda     ZP_EXTR_PTR_B
          pha
-         lda     $8a
+         lda     ZP_TEMP3
          cmp     #$40
          beq     @LB1D4
          jmp     @LB13D
@@ -1353,17 +1361,17 @@ LB045:   lda     VFS_N904_MousePos      ; Current ADVAL(7) low byte
 @LB1D4:  pla
          pla
          pla
-         sta     ZP_EXTR_PTR_Q
+         sta     ZP_Previous_mouse_screenptr
          pla
-         sta     ZP_EXTR_PTR_Q+1
+         sta     ZP_Previous_mouse_screenptr+1
          lda     VFS_N932_ACCON_SAVE
          sta     sheila_ACCON
          rts
 
 RestoreZpAndPage9:
-         lda     ZP_EXTR_PTR_Q
+         lda     ZP_Previous_mouse_screenptr
          sta     VFS_N924_PTR_Q
-         lda     ZP_EXTR_PTR_Q+1
+         lda     ZP_Previous_mouse_screenptr+1
          sta     VFS_N924_PTR_Q+1
          ldx     #$0c
 @lp:     lda     VFS_N926_ZPSAVE,X
@@ -1410,28 +1418,29 @@ PreserveZpAndPage9:
          dex
          bpl     @lp
          lda     VFS_N924_PTR_Q
-         sta     ZP_EXTR_PTR_Q
+         sta     ZP_Previous_mouse_screenptr
          lda     VFS_N924_PTR_Q+1
-         sta     ZP_EXTR_PTR_Q+1
+         sta     ZP_Previous_mouse_screenptr+1
 LB23Frts:
          rts
 
-LB240:   ldy     ZP_MOS_CURROM
+Restore_memory_under_mouse:
+         ldy     ZP_MOS_CURROM
          lda     SYSVARS_DF0_PWSKPTAB,Y
          clc
          adc     #$03
-         sta     $87
-         stz     $86
-         lda     ZP_EXTR_PTR_Q+1
+         sta     ZP_EXTR_PTR_A + 1      ; setup pointer the old screen data  ( 3rd page of private workspace)
+         stz     ZP_EXTR_PTR_A
+         lda     ZP_Previous_mouse_screenptr+1
          bmi     LB23Frts
          pha
-         lda     ZP_EXTR_PTR_Q
+         lda     ZP_Previous_mouse_screenptr
          pha
          ldy     #$00
-         sty     $8a
+         sty     ZP_TEMP3
 @LB258:  ldy     #$00
-         sty     $89
-         lda     ZP_EXTR_PTR_Q+1
+         sty     ZP_TEMP2
+         lda     ZP_Previous_mouse_screenptr+1
          bmi     @LB2C5
          cmp     #$30
          bcc     @LB2D1
@@ -1439,29 +1448,30 @@ LB240:   ldy     ZP_MOS_CURROM
          bmi     @LB2C5
          cmp     #$05
          bcs     @LB2C2
-@LB26D:  ldy     $8a
-         lda     ($86),Y
-         ldy     $89
-         sta     (ZP_EXTR_PTR_Q),Y
-         inc     $8a
-         lda     $8a
+
+@LB26D:  ldy     ZP_TEMP3
+         lda     (ZP_EXTR_PTR_A ),Y         ; get old screen byte
+         ldy     ZP_TEMP2
+         sta     (ZP_Previous_mouse_screenptr),Y          ; put it back over the mouse pointer
+         inc     ZP_TEMP3
+         lda     ZP_TEMP3
          and     #$0f
          beq     @LB29F
-         inc     $89
-         lda     $89
+         inc     ZP_TEMP2
+         lda     ZP_TEMP2
          clc
-         adc     ZP_EXTR_PTR_Q
+         adc     ZP_Previous_mouse_screenptr
          and     #$07
          bne     @LB26D
 @LB288:  ldy     VFS_N908_MODESAVE
-         lda     ZP_EXTR_PTR_Q
+         lda     ZP_Previous_mouse_screenptr
          and     #$f8
          clc
-         adc     LB98A,Y      ; always 128 ( 640)
-         sta     ZP_EXTR_PTR_Q
-         lda     ZP_EXTR_PTR_Q+1
-         adc     LB98D,Y     ; always 2
-         sta     ZP_EXTR_PTR_Q+1
+         adc     LB98A,Y                ; always 128 ( 640)
+         sta     ZP_Previous_mouse_screenptr
+         lda     ZP_Previous_mouse_screenptr+1
+         adc     LB98D,Y                ; always 2
+         sta     ZP_Previous_mouse_screenptr+1
          jmp     @LB258
 
 @LB29F:  lda     VFS_N914_MouseX2
@@ -1473,32 +1483,32 @@ LB240:   ldy     ZP_MOS_CURROM
 @LB2AD:  pla
          clc
          adc     #$08
-         sta     ZP_EXTR_PTR_Q
+         sta     ZP_Previous_mouse_screenptr
          pla
          adc     #$00
-         sta     ZP_EXTR_PTR_Q+1
+         sta     ZP_Previous_mouse_screenptr+1
          pha
-         lda     ZP_EXTR_PTR_Q
+         lda     ZP_Previous_mouse_screenptr
          pha
-         ldy     $8a
-         cpy     #$40
+         ldy     ZP_TEMP3
+         cpy     #$40                  ; do all 64 bytes of mouse pointer
          bne     @LB258
 @LB2C2:  pla
          pla
          rts
 
-@LB2C5:  lda     $8a
+@LB2C5:  lda     ZP_TEMP3
          and     #$f0
          clc
          adc     #$10
-         sta     $8a
+         sta     ZP_TEMP3
          jmp     @LB29F
 
-@LB2D1:  lda     ZP_EXTR_PTR_Q
+@LB2D1:  lda     ZP_Previous_mouse_screenptr
          and     #$07
          clc
-         adc     $8a
-         sta     $8a
+         adc     ZP_TEMP3
+         sta     ZP_TEMP3
          jmp     @LB288
 
 LB2DD:   jsr     RestoreZpAndPage9
@@ -1507,7 +1517,7 @@ LB2DD:   jsr     RestoreZpAndPage9
          .byte $ad
          .asciiz "Bad MODE"
 
-LB2ED:   sta     $090b                  ; Entry a= 255 , 0 1 2 ?
+Setup_mouse_pointer_workspace:   sta     $090b                  ; Entry a= 255 , 0 1 2 ?
          asl     A
          asl     A
          asl     A
@@ -1527,53 +1537,62 @@ LB2ED:   sta     $090b                  ; Entry a= 255 , 0 1 2 ?
          pla
          clc
          adc     #>LBCA8                       ; mask table +  mode*256
-         sta     $87
+         sta     ZP_EXTR_PTR_A + 1
          lda     #<LBCA8
-         sta     $86
+         sta     ZP_EXTR_PTR_A
          ldx     ZP_MOS_CURROM
          lda     SYSVARS_DF0_PWSKPTAB,X
          inc     A
-         sta     $8d                          ; >workspace+1
-         stz     $8c
-         sty     $8a                          ; table index ( which one of the 4 pointers)
+         sta     ZP_EXTR_PTR_B + 1                          ; >workspace+1
+         stz     ZP_EXTR_PTR_B
+         sty     ZP_TEMP3                          ; table index ( which one of the 4 pointers)
          ldy     #$00                         ; why not STZ ????
-         sty     $89
-@LB322:  ldy     $8a
+         sty     ZP_TEMP2
+@LB322:  ldy     ZP_TEMP3
          lda     (ZP_EXTRA_BASE),Y          ; get mouse pointer byte
-         ldy     $89
-         sta     ($8c),Y            ; store mouse pointer byte wksp+1
-         ldy     $8a
-         lda     ($86),Y            ; get mouse mask byte
-         ldy     $89
-         inc     $8d
-         sta     ($8c),Y            ; store mouse mask byte at wksp+2
-         dec     $8d                ; restore wksp+2 to wksp+1
-         inc     $8a                ; inc get pointer
-         inc     $89                ; inc store pointer
-         ldy     $89
+         ldy     ZP_TEMP2
+         sta     (ZP_EXTR_PTR_B),Y            ; store mouse pointer byte wksp+1
+         ldy     ZP_TEMP3
+         lda     (ZP_EXTR_PTR_A ),Y            ; get mouse mask byte
+         ldy     ZP_TEMP2
+         inc     ZP_EXTR_PTR_B + 1                ; wksp+2
+         sta     (ZP_EXTR_PTR_B),Y            ; store mouse mask byte at wksp+2
+         dec     ZP_EXTR_PTR_B + 1                ; restore wksp+2 to wksp+1
+         inc     ZP_TEMP3                ; inc get pointer
+         inc     ZP_TEMP2                ; inc store pointer
+         ldy     ZP_TEMP2
          cpy     #$40               ; do 64 bytes
          bne     @LB322
+
          stz     ZP_EXTRA_BASE
          lda     #$40
-         sta     $86
+         sta     ZP_EXTR_PTR_A              ; pointer to after mouse sprite
          ldx     ZP_MOS_CURROM
          lda     SYSVARS_DF0_PWSKPTAB,X
          inc     A
-         sta     ZP_EXTRA_TMPPTR+1
-         sta     $87
+         sta     ZP_EXTRA_BASE+1            ; pointer to beginning of mouse sprite
+         sta     ZP_EXTR_PTR_A + 1
+
          lda     #$00
-         sta     $88
+         sta     ZP_TEMP
+
          jsr     @LB36B
+
          stz     ZP_EXTRA_BASE
          lda     #$40
-         sta     $86
+         sta     ZP_EXTR_PTR_A              ; pointer to after mouse sprite mask
          ldx     ZP_MOS_CURROM
          lda     SYSVARS_DF0_PWSKPTAB,X
          clc
          adc     #$02
-         sta     ZP_EXTRA_TMPPTR+1
-         sta     $87
-         dec     $88
+         sta     ZP_EXTRA_BASE+1
+         sta     ZP_EXTR_PTR_A + 1          ; pointer to beginning of mouse sprite mask
+         dec     ZP_TEMP
+
+; shift the mouse sprite and the mask to each of the 4 possible bit positions and store in the wrokspace
+; then exit
+
+        ; ZP_temp is 0 or 0xFF
 @LB36B:  lda     VFS_N908_MODESAVE
          beq     @LB3C1         ; mode 0
          cmp     #$01
@@ -1582,29 +1601,30 @@ LB2ED:   sta     $090b                  ; Entry a= 255 , 0 1 2 ?
 
 @LB377:  jsr     @LB37D         ; mode 1
          jsr     @LB37D
-@LB37D:  ldx     #$00
-@LB37F:  lda     $88
+
+@LB37D:  ldx     #$00           ; Called three times
+@LB37F:  lda     ZP_TEMP
          cmp     #$ff
          lda     #$00
          php
-@LB386:  sta     $8a
-         txa
-         ora     $8a
+@LB386:  sta     ZP_TEMP3       ; first time = 0
+         txa                    ; first time x = 0
+         ora     ZP_TEMP3
          tay
-         lda     (ZP_EXTRA_BASE),Y
+         lda     (ZP_EXTRA_BASE),Y          ; pointer to beginning of mouse sprite/mask
          plp
          bcs     @LB395
          and     #$ef
-         bcc     @LB397
+         bcc     @LB397         ; always branch
 
 @LB395:  ora     #$10
-@LB397:  bit     $88
+@LB397:  bit     ZP_TEMP
          bmi     @LB39C
          clc
 @LB39C:  ror     A
          php
-         sta     ($86),Y
-         lda     $8a
+         sta     (ZP_EXTR_PTR_A ),Y ;
+         lda     ZP_TEMP3
          clc
          adc     #$10
          cmp     #$40
@@ -1613,42 +1633,43 @@ LB2ED:   sta     $090b                  ; Entry a= 255 , 0 1 2 ?
          inx
          cpx     #$10
          bne     @LB37F
-@LB3AF:  lda     ZP_EXTRA_TMPPTR+1
-         sta     $87
-         lda     $86
+
+@LB3AF:  lda     ZP_EXTRA_BASE+1
+         sta     ZP_EXTR_PTR_A + 1
+         lda     ZP_EXTR_PTR_A
          sta     ZP_EXTRA_BASE
          clc
          adc     #$40
-         sta     $86
+         sta     ZP_EXTR_PTR_A
          bcc     @LB3C0
-         inc     $87
+         inc     ZP_EXTR_PTR_A + 1
 @LB3C0:  rts
 
 @LB3C1:  jsr     @LB3C7     ; mode 0
          jsr     @LB3C7
 @LB3C7:  jsr     @LB3D8
-         lda     ZP_EXTRA_TMPPTR+1
-         sta     $87
-         lda     $86
+         lda     ZP_EXTRA_BASE+1
+         sta     ZP_EXTR_PTR_A + 1
+         lda     ZP_EXTR_PTR_A
          sta     ZP_EXTRA_BASE
          jsr     @LB3D8
          jmp     @LB3AF
 
 @LB3D8:  ldx     #$00
-@LB3DA:  lda     $88
+@LB3DA:  lda     ZP_TEMP
          cmp     #$ff
          lda     #$00
          php
-@LB3E1:  sta     $8a
+@LB3E1:  sta     ZP_TEMP3
          txa
-         ora     $8a
+         ora     ZP_TEMP3
          tay
          lda     (ZP_EXTRA_BASE),Y
          plp
          ror     A
          php
-         sta     ($86),Y
-         lda     $8a
+         sta     (ZP_EXTR_PTR_A ),Y
+         lda     ZP_TEMP3
          clc
          adc     #$10
          cmp     #$40
@@ -1664,29 +1685,29 @@ LB2ED:   sta     $090b                  ; Entry a= 255 , 0 1 2 ?
          jmp     @LB440
 
 @LB407:  ldx     #$00
-@LB409:  lda     $88
+@LB409:  lda     ZP_TEMP
          cmp     #$ff
          lda     #$00
          php
-@LB410:  sta     $8a
+@LB410:  sta     ZP_TEMP3
          txa
-         ora     $8a
+         ora     ZP_TEMP3
          tay
          lda     (ZP_EXTRA_BASE),Y
          and     #$aa
          lsr     A
          plp
          bcc     @LB426
-         bit     $88
+         bit     ZP_TEMP
          bpl     @LB424
          ora     #$aa
 @LB424:  ora     #$02
-@LB426:  sta     ($86),Y
+@LB426:  sta     (ZP_EXTR_PTR_A ),Y
          lda     (ZP_EXTRA_BASE),Y
          and     #$55
          lsr     A
          php
-         lda     $8a
+         lda     ZP_TEMP3
          clc
          adc     #$10
          cmp     #$40
@@ -1699,17 +1720,17 @@ LB2ED:   sta     $090b                  ; Entry a= 255 , 0 1 2 ?
 
 @LB440:  ldy     #$3f
 @LB442:  lda     (ZP_EXTRA_BASE),Y
-         sta     ($86),Y
+         sta     (ZP_EXTR_PTR_A ),Y
          dey
          bpl     @LB442
          jmp     @LB3AF
 
 LB44C:   lda     VFS_N916_MouseY+1
-         sta     $8c
+         sta     ZP_EXTR_PTR_B
          lda     VFS_N916_MouseY
-         lsr     $8c
+         lsr     ZP_EXTR_PTR_B
          ror     A
-         lsr     $8c
+         lsr     ZP_EXTR_PTR_B
          ror     A
          sta     VFS_N916_MouseY
          lsr     A
@@ -1719,7 +1740,7 @@ LB44C:   lda     VFS_N916_MouseY+1
          lda     VFS_N912_MouseX+1
          bpl     @LB467
          inx
-@LB467:  lda     $8c
+@LB467:  lda     ZP_EXTR_PTR_B
          beq     @LB47B
          txa
          clc
@@ -1730,29 +1751,29 @@ LB44C:   lda     VFS_N916_MouseY+1
          sta     VFS_N916_MouseY
          dec     VFS_N916_MouseY
 @LB47B:  lda     LB965,X
-         sta     $8d
+         sta     ZP_EXTR_PTR_B + 1
          lda     LB943,X   ; table return 0x80 for even X and 0x00 for odd.
-         sta     $8c
+         sta     ZP_EXTR_PTR_B
          lda     VFS_N912_MouseX+1
          bpl     @LB48D
          clc
          adc     #$05
-@LB48D:  sta     $88
+@LB48D:  sta     ZP_TEMP
          lda     VFS_N912_MouseX
-         lsr     $88
+         lsr     ZP_TEMP
          ror     A
          and     #$f8
          clc
-         adc     $8c
-         sta     $8c
-         lda     $88
-         adc     $8d
-         sta     $8d
+         adc     ZP_EXTR_PTR_B
+         sta     ZP_EXTR_PTR_B
+         lda     ZP_TEMP
+         adc     ZP_EXTR_PTR_B + 1
+         sta     ZP_EXTR_PTR_B + 1
          lda     VFS_N916_MouseY
          and     #$07
          eor     #$07
-         ora     $8c
-         sta     $8c
+         ora     ZP_EXTR_PTR_B
+         sta     ZP_EXTR_PTR_B
          lda     VFS_N912_MouseX
          lsr     A
          lsr     A
@@ -1876,7 +1897,7 @@ LB567:  phx
          tay
          lda     ZP_EXTRA_BASE
          pha
-         lda     ZP_EXTRA_TMPPTR+1
+         lda     ZP_EXTRA_BASE+1
          pha
          phx
          phy
@@ -1884,7 +1905,7 @@ LB567:  phx
          lda     SYSVARS_DF0_PWSKPTAB,Y
          clc
          adc     #$03
-         sta     ZP_EXTRA_TMPPTR+1
+         sta     ZP_EXTRA_BASE+1
          lda     #$44
          sta     ZP_EXTRA_BASE
          jsr     swapZPEXTRA6with904
@@ -1953,7 +1974,7 @@ LB567:  phx
 @LB60A:  lda     sheila_USRVIA_orb
          jsr     swapZPEXTRA6with904
          pla
-         sta     ZP_EXTRA_TMPPTR+1
+         sta     ZP_EXTRA_BASE+1
          pla
          sta     ZP_EXTRA_BASE
          ply
