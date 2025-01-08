@@ -61,16 +61,18 @@ zp_mos_txtptr =  $f2        ;MOS text pointer, along with Y register
 
 zp_mos_escape =  $ff        ;MOS Escape flag
 
-VFS_N900_MouseBounds = $0900 ;16:16 XY bounds
+; lots of spare bytes in the 50 bytes that are backed up to the workspace.
+
 VFS_N900 =       $0900      ;Page 9 is used by VFS during mouse/video stuff, it gets backed up to private workspace
+VFS_N900_MouseBounds = $0900 ;16:16 XY bounds
 VFS_N904_MousePos = $0904   ;16:16 XY Mouse position
 VFS_N908_MODESAVE = $0908
-;909
-;90a
-;90b
-;90c
-;90d
-VFS_N90E_MousePos2 = $090e  ;16:16 XY Mouse position???
+VFS_N909_MOUSEVISIBLE = $0909 ; 0 or 255 for visible
+VFS_N90A_MOUSE_TYPE = $090a ; 0=type 0 , 7=type 1  , 255 not defined yet
+VFS_N90B_MOUSE_POINTER_TYPE = $090b ; 0=cross , 1=magnifier  , 2= prt NW , 3= prt NE
+VFS_N90C_MOUSE_LAST_BUTTON = $090c ;
+VFS_N90D_MOUSE_BUTTON_STILL_ACTIVE = $090d ;
+VFS_N90E_PreviousMousePos = $090e  ;16:16 XY Mouse position???
 VFS_N912_MouseX =$0912 ; 16 bit X
 VFS_N914_MouseX2 =$0914 ; 16 bit X
 VFS_N916_MouseY =$0916 ; 16 bit Y
@@ -78,9 +80,18 @@ VFS_N916_MouseY =$0916 ; 16 bit Y
 VFS_N924_PTR_Q = $0924
 VFS_N926_ZPSAVE = $0926
 VFS_N932_ACCON_SAVE = $0932
+
+; later bytes don't get backed up to the private VFS mouse workspace
+; but the next 8 bytes are copied to the workspace
+
 VFS_N937_PlayStart = $0937  ;16 bit starting frame number for play
 VFS_N939_RETRY_CTR = $0939  ;Countdown retries of search/seeks
-VFS_0D92_FLAG_POLL100 = $0d92
+
+VFS_N93A_SEARCHING_IN_PROGRESS = $093a    ;0 or 13 (searching in progress)
+
+VFS_N93B_TEMPBUF = VFS_N93B_TEMPBUF ; temporary 4 byte buffer only used parse16bitDecXA
+
+VFS_0D92_FLAG_POLL100 = $0d92   ; 0 or 255
 VFS_0D93_CTDN_SEARCH = $0d93
 VFS_0D94_CTDN_QQQQQ = $0d94
 VFS_0D95_20Hz_CTDN = $0d95  ;;count down 4..0
@@ -604,11 +615,11 @@ starCHAPTER:
          jsr     FCMD_TextBuf
          bra     FCMD_E1_VideoOn
 
-setYeq0: ldy     #$00
+setYeq0: ldy     #$00                               ; should be inlined as that is shorter and quicker
          rts
 
 ; TODO: work out what this is then document
-enableSearchPoll:
+enableSearchPoll:                                   ; only called from starSEARCH
          lda     #$f0
          sta     VFS_0D93_CTDN_SEARCH
          lda     #$00
@@ -624,7 +635,7 @@ starSEARCH:
          jsr     checkDecDigitBrkBadNumber ;check for digit - BRK bad number
          lda     #LV_FCMD_F_TERM_R_HALT
          jsr     parseDigitsBuildFCMD_F_TermA
-         sta     $093a      ;store <CR>
+         sta     VFS_N93A_SEARCHING_IN_PROGRESS      ;store <CR>
          jsr     enableSearchPoll
          jmp     FCMD_TextBuf
 
@@ -680,7 +691,7 @@ waitForSeek:
 disableSearchPoll:
          stz     VFS_0D93_CTDN_SEARCH ;OK disable timeout counters
          stz     VFS_0D94_CTDN_QQQQQ
-         stz     $093a
+         stz     VFS_N93A_SEARCHING_IN_PROGRESS
          clc
          rts
 
@@ -1074,11 +1085,11 @@ VFSstarMOUSE:
          bne     LAF4D
          lda     VFS_N924_PTR_Q-1
          bne     LAF4E
-         stx     $090d
-         stx     $0909
+         stx     VFS_N90D_MOUSE_BUTTON_STILL_ACTIVE                     ; X = 0
+         stx     VFS_N909_MOUSEVISIBLE
          dex
-         stx     VFS_0D92_FLAG_POLL100
-         stx     $090a
+         stx     VFS_0D92_FLAG_POLL100      ; X = 255
+         stx     VFS_N90A_MOUSE_TYPE
          lda     sheila_USRVIA_pcr
          and     #$0f
          sta     sheila_USRVIA_pcr
@@ -1098,7 +1109,7 @@ VFSstarMOUSE:
          lda     #$02
          sta     VFS_N904_MousePos+3
          lda     #$7f
-         sta     VFS_N900
+         sta     VFS_N900_MouseBounds
          sta     VFS_N900_MouseBounds+1
          lda     #$00
          sta     VFS_N900_MouseBounds+2
@@ -1114,7 +1125,7 @@ VFSstarPOINTER:
          jsr     skipCommaOrSpace
          lda     (zp_vfsv_a8_textptr),Y
          cmp     #$0d
-         bne     @LAFEA
+         bne     @LAFEA         ; can be reorganised to avoid this branch
          lda     #$01
          bne     @LAFF2
 
@@ -1127,27 +1138,27 @@ VFSstarPOINTER:
          pha
          and     #$02
          bne     @LB001
-         lda     #$98
+         lda     #$98                   ; Disable mouse interrupts
          sta     sheila_USRVIA_ier
 @LB001:  pla
          and     #$01
-         beq     LB022
-         lda     VFS_0D92_FLAG_POLL100
+         beq     LB022                      ; *pointer 0 /2
+         lda     VFS_0D92_FLAG_POLL100      ; * pointer 1
          beq     LB021
-         lda     $0909
-         bne     LB021
+         lda     VFS_N909_MOUSEVISIBLE
+         bne     LB021                      ; if alreadyy shown don't show it again
          lda     #$ff
          sta     ZP_Previous_mouse_screenptr+1
          jsr     Setup_mouse_pointer_workspace
          ldy     VFS_N904_MousePos
          dey
-         sty     VFS_N90E_MousePos2
-         dec     $0909
+         sty     VFS_N90E_PreviousMousePos
+         dec     VFS_N909_MOUSEVISIBLE
 LB021:   rts
 
-LB022:   lda     $0909
+LB022:   lda     VFS_N909_MOUSEVISIBLE                ; If mouse is already hidden, don't hide it again
          beq     LB021
-         stz     $0909
+         stz     VFS_N909_MOUSEVISIBLE
          lda     sheila_ACCON
          sta     VFS_N932_ACCON_SAVE
          and     #$fb
@@ -1162,16 +1173,16 @@ LB022:   lda     $0909
 ; Update pointer if mouse has moved
 ; ---------------------------------
 LB045:   lda     VFS_N904_MousePos      ; Current ADVAL(7) low byte
-         cmp     VFS_N90E_MousePos2
+         cmp     VFS_N90E_PreviousMousePos
          bne     @LB065                 ; Mouse X has moved
          lda     VFS_N904_MousePos+2    ; Current ADVAL(8) low byte
-         cmp     VFS_N90E_MousePos2+2
+         cmp     VFS_N90E_PreviousMousePos+2
          bne     @LB065                 ; Mouse Y has moved
          lda     VFS_N904_MousePos+1    ; Current ADVAL(7) high byte
-         cmp     VFS_N90E_MousePos2+1
+         cmp     VFS_N90E_PreviousMousePos+1
          bne     @LB065                 ; Mouse X has moved
          lda     VFS_N904_MousePos+3    ; Current ADVAL(8) high byte
-         cmp     VFS_N90E_MousePos2+3
+         cmp     VFS_N90E_PreviousMousePos+3
          beq     LB021                  ; Mouse Y has NOT moved
 ; Mouse has moved
 @LB065:  lda     sheila_ACCON
@@ -1182,71 +1193,88 @@ LB045:   lda     VFS_N904_MousePos      ; Current ADVAL(7) low byte
          ora     #$04                   ; select shadow memory for access
 @LB073:  sta     sheila_ACCON
          lda     VFS_N904_MousePos+2    ; Copy current mouse XY to previous mouse XY
-         sta     VFS_N90E_MousePos2+2
+         sta     VFS_N90E_PreviousMousePos+2
          lda     VFS_N904_MousePos+3
-         sta     VFS_N90E_MousePos2+3
+         sta     VFS_N90E_PreviousMousePos+3
          lda     VFS_N904_MousePos
-         sta     VFS_N90E_MousePos2
+         sta     VFS_N90E_PreviousMousePos
          lda     VFS_N904_MousePos+1
-         sta     VFS_N90E_MousePos2+1
-         cmp     VFS_N900_MouseBounds+1
-         bcc     @LB0A6                 ; If within Y limit continue
-         beq     @LB097
-         bcs     @LB09F
+         sta     VFS_N90E_PreviousMousePos+1
 
-@LB097:  lda     VFS_N904_MousePos
-         cmp     VFS_N900
-         bcc     @LB0A6                 ; If within X limit, continue
-@LB09F:  lda     $090b
-         ora     #$01
-         bne     @LB0AB
+         cmp     VFS_N900_MouseBounds+1  ; X coordinate
+         bcc     @X_HIGH_LT                 ; less than
+         beq     @X_HIGH_EQ                 ; Equal
+         bcs     @X_HIGH_GT                 ; greater than
 
-@LB0A6:  lda     $090b
-         and     #$02
-@LB0AB:  tay
+@X_HIGH_EQ:
+         lda     VFS_N904_MousePos
+         cmp     VFS_N900_MouseBounds
+         bcc     @X_HIGH_LT                 ; If within X limit, continue
+@X_HIGH_GT:
+         lda     VFS_N90B_MOUSE_POINTER_TYPE                      ; not really sure why we load the prevoius mouse type here as we are going to over bits 0 and 1
+         ora     #$01                       ; set bit 0 ( pointer 1 or 3)
+         bne     @Test_bounds_Y             ; always taken
+
+@X_HIGH_LT:
+         lda     VFS_N90B_MOUSE_POINTER_TYPE
+         and     #$02                       ; clear bit 0 ( pointer 0 or 2)
+
+@Test_bounds_Y:
+         tay
          lda     VFS_N904_MousePos+3
          cmp     VFS_N900_MouseBounds+3
-         bcc     @LB0C5
-         beq     @LB0B8
-         bcs     @LB0C0
+         bcc     @Y_HIGH_LT
+         beq     @Y_HIGH_EQ
+         bcs     @Y_HIGH_GT
 
-@LB0B8:  lda     VFS_N904_MousePos+2
+@Y_HIGH_EQ:
+         lda     VFS_N904_MousePos+2
          cmp     VFS_N900_MouseBounds+2
-         bcc     @LB0C5
-@LB0C0:  tya
-         ora     #$02
-         bne     @LB0C8
+         bcc     @Y_HIGH_LT
+@Y_HIGH_GT:
+         tya
+         ora     #$02                      ; set bit 1 ( pointer 2 or 3)
+         bne     @Check_if_new_pointer     ; always taken
 
-@LB0C5:  tya
-         and     #$01
-@LB0C8:  cmp     $090b
+@Y_HIGH_LT:
+         tya
+         and     #$01                       ; clear bit 1 ( pointer 0 or 1)
+
+@Check_if_new_pointer:
+         cmp     VFS_N90B_MOUSE_POINTER_TYPE
          beq     @LB0D0
          jsr     Setup_mouse_pointer_workspace   ; ( NB pointer type may have changed if the mouse has moved out of bounds )
 
 @LB0D0:  ldy     VFS_N904_MousePos
          lda     VFS_N908_MODESAVE
          cmp     #$02
-         bne     @LB0E9
-         lda     VFS_N904_MousePos+1    ; mode 2
+         bne     @LB0E9                     ; screen mode 0  or 1
+
+         ; screen mode 2
+         lda     VFS_N904_MousePos+1        ; X high byte
          cmp     #$04
          bne     @LB0E9
-         cpy     #$f8
+
+         cpy     #$f8                       ; X low byte
          bcc     @LB0E9
+         ; mouse on the right of the screen
          dey
          dey
          dey
          dey
 
-@LB0E9:  ldx     $090b              ; mode 0 or 1
+@LB0E9:
+         ldx     VFS_N90B_MOUSE_POINTER_TYPE
          tya
+
          sec
-         sbc     LB9A0,X        ; 20,24, 4, 40
+         sbc     LB9A0,X                     ; 20, 24, 4, 40
          sta     VFS_N912_MouseX
          lda     VFS_N904_MousePos+1
          sbc     #$00
          sta     VFS_N912_MouseX+1
 
-         lda     LB9A4,X
+         lda     LB9A4,X                     ; 28, 20, 4, 4
          clc
          adc     VFS_N904_MousePos+2
          sta     VFS_N916_MouseY
@@ -1254,7 +1282,7 @@ LB045:   lda     VFS_N904_MousePos      ; Current ADVAL(7) low byte
          adc     #$00
          sta     VFS_N916_MouseY+1
 
-         jsr     LB44C
+         jsr     LB44C                  ; returns X = 0-3
          ldy     ZP_MOS_CURROM
          lda     SYSVARS_DF0_PWSKPTAB,Y
          inc     A
@@ -1262,6 +1290,7 @@ LB045:   lda     VFS_N904_MousePos      ; Current ADVAL(7) low byte
          lda     LB990,X                ; get pointer to the correct shifted sprite
          sta     ZP_EXTRA_BASE
          jsr     Restore_memory_under_mouse
+
          lda     VFS_N912_MouseX
          sta     VFS_N914_MouseX2
          lda     VFS_N912_MouseX+1
@@ -1511,58 +1540,66 @@ Restore_memory_under_mouse:
          sta     ZP_TEMP3
          jmp     @LB288
 
-LB2DD:   jsr     RestoreZpAndPage9
+ERR_BAD_MODE:
+         jsr     RestoreZpAndPage9
          jsr     ReloadFSMandDIR_ThenBRK
 
          .byte $ad
          .asciiz "Bad MODE"
 
-Setup_mouse_pointer_workspace:   sta     $090b                  ; Entry a= 255 , 0 1 2 ?
+Setup_mouse_pointer_workspace:
+         sta     VFS_N90B_MOUSE_POINTER_TYPE                  ; Entry a= 0 1 2 , 255 ( effectively 3)
          asl     A
          asl     A
          asl     A
          asl     A
          asl     A
-         asl     A                      ; *64
+         asl     A                      ; *64  so we have 0 64 128 192
          tay
          lda     VFS_N908_MODESAVE
          cmp     #$03
-         bcs     LB2DD
+         bcs     ERR_BAD_MODE                  ; Bad MODE
          pha
-         clc
+
+         clc                                   ; Already clear from BCS above
          adc     #>LB9A8                       ; mouse symbol table +  mode*256
          sta     ZP_EXTRA_BASE+1
          lda     #<LB9A8
          sta     ZP_EXTRA_BASE
+
          pla
          clc
          adc     #>LBCA8                       ; mask table +  mode*256
          sta     ZP_EXTR_PTR_A + 1
          lda     #<LBCA8
          sta     ZP_EXTR_PTR_A
+
          ldx     ZP_MOS_CURROM
          lda     SYSVARS_DF0_PWSKPTAB,X
          inc     A
-         sta     ZP_EXTR_PTR_B + 1                          ; >workspace+1
+         sta     ZP_EXTR_PTR_B + 1            ; >workspace+1
          stz     ZP_EXTR_PTR_B
-         sty     ZP_TEMP3                          ; table index ( which one of the 4 pointers)
+
+         sty     ZP_TEMP3                     ; table index ( which one of the 4 pointers)
          ldy     #$00                         ; why not STZ ????
          sty     ZP_TEMP2
-@LB322:  ldy     ZP_TEMP3
+
+@loop64bytes:
+         ldy     ZP_TEMP3
          lda     (ZP_EXTRA_BASE),Y          ; get mouse pointer byte
          ldy     ZP_TEMP2
-         sta     (ZP_EXTR_PTR_B),Y            ; store mouse pointer byte wksp+1
+         sta     (ZP_EXTR_PTR_B),Y          ; store mouse pointer byte wksp+1
          ldy     ZP_TEMP3
-         lda     (ZP_EXTR_PTR_A ),Y            ; get mouse mask byte
+         lda     (ZP_EXTR_PTR_A ),Y         ; get mouse mask byte
          ldy     ZP_TEMP2
-         inc     ZP_EXTR_PTR_B + 1                ; wksp+2
-         sta     (ZP_EXTR_PTR_B),Y            ; store mouse mask byte at wksp+2
-         dec     ZP_EXTR_PTR_B + 1                ; restore wksp+2 to wksp+1
-         inc     ZP_TEMP3                ; inc get pointer
-         inc     ZP_TEMP2                ; inc store pointer
+         inc     ZP_EXTR_PTR_B + 1          ; wksp+2
+         sta     (ZP_EXTR_PTR_B),Y          ; store mouse mask byte at wksp+2
+         dec     ZP_EXTR_PTR_B + 1          ; restore wksp+2 to wksp+1
+         inc     ZP_TEMP3                   ; inc get pointer
+         inc     ZP_TEMP2                   ; inc store pointer
          ldy     ZP_TEMP2
-         cpy     #$40               ; do 64 bytes
-         bne     @LB322
+         cpy     #$40                       ; do 64 bytes
+         bne     @loop64bytes
 
          stz     ZP_EXTRA_BASE
          lda     #$40
@@ -1728,58 +1765,73 @@ Setup_mouse_pointer_workspace:   sta     $090b                  ; Entry a= 255 ,
 LB44C:   lda     VFS_N916_MouseY+1
          sta     ZP_EXTR_PTR_B
          lda     VFS_N916_MouseY
+
          lsr     ZP_EXTR_PTR_B
          ror     A
+
          lsr     ZP_EXTR_PTR_B
          ror     A
-         sta     VFS_N916_MouseY
+
+         sta     VFS_N916_MouseY  ; Y is now divided by 4
+
          lsr     A
          lsr     A
-         lsr     A
+         lsr     A                ; Y is now divided by 8
          tax
+
          lda     VFS_N912_MouseX+1
          bpl     @LB467
          inx
 @LB467:  lda     ZP_EXTR_PTR_B
          beq     @LB47B
          txa
+
          clc
          adc     #$20
          tax
+
          lda     VFS_N916_MouseY
          eor     #$07
          sta     VFS_N916_MouseY
+
          dec     VFS_N916_MouseY
-@LB47B:  lda     LB965,X
+@LB47B:
+         lda     LB965,X
          sta     ZP_EXTR_PTR_B + 1
          lda     LB943,X   ; table return 0x80 for even X and 0x00 for odd.
          sta     ZP_EXTR_PTR_B
          lda     VFS_N912_MouseX+1
          bpl     @LB48D
+
          clc
          adc     #$05
-@LB48D:  sta     ZP_TEMP
+@LB48D:
+         sta     ZP_TEMP
          lda     VFS_N912_MouseX
          lsr     ZP_TEMP
          ror     A
          and     #$f8
+
          clc
          adc     ZP_EXTR_PTR_B
          sta     ZP_EXTR_PTR_B
          lda     ZP_TEMP
          adc     ZP_EXTR_PTR_B + 1
          sta     ZP_EXTR_PTR_B + 1
+
          lda     VFS_N916_MouseY
          and     #$07
          eor     #$07
          ora     ZP_EXTR_PTR_B
          sta     ZP_EXTR_PTR_B
+
          lda     VFS_N912_MouseX
          lsr     A
          lsr     A
          and     #$03
-         tax
+         tax                       ; return X = 0-3 to index into the sprite shifted table
          rts
+
 OSBYTE_Extended_Vectorcode:
          cmp     #$80
          beq     @LB50A                 ; Jump with ADVAL
@@ -1859,7 +1911,7 @@ OSBYTE_Extended_Vectorcode:
 @LB52F:  php
          sei
          jsr     swapPage9AndPrivWkspP3
-         jsr     LB65B
+         jsr     Get_Pointer_TypeX
          lda     sheila_USRVIA_orb
          cpx     #$00
          beq     @LB542         ; If &00, buttons in b0-b3
@@ -1910,7 +1962,7 @@ LB567:  phx
          sta     ZP_EXTRA_BASE
          jsr     swapZPEXTRA6with904
          ply
-         jsr     LB65B
+         jsr     Get_Pointer_TypeX
          tya
          and     #$10
          beq     @LB5CC
@@ -2002,7 +2054,7 @@ Serv15_Poll100Hz:
          phy
          jsr     PreserveZpAndPage9
          jsr     LB67E                  ; Insert keypress if button state has changed
-         lda     $0909
+         lda     VFS_N909_MOUSEVISIBLE
          beq     @poh4
          jsr     LB045
 @poh4:   jsr     RestoreZpAndPage9
@@ -2017,8 +2069,8 @@ Serv15_Poll100Hz:
          rts
 
 ;Check pointing device type
-LB65B:   ldx     $090a
-         bpl     @LB67D         ;  Exit if b7=0
+Get_Pointer_TypeX:   ldx     VFS_N90A_MOUSE_TYPE
+         bpl     @LB67D         ;  Exit if b7=0 ( mouse type already defiend )
          ldx     #$00
          lda     sheila_USRVIA_orb
          and     #$e0
@@ -2032,32 +2084,33 @@ LB65B:   ldx     $090a
          bne     @LB67D             ; Exit with X=&07
 
 @LB678:  ldx     #$07
-@LB67A:  stx     $090a
+@LB67A:  stx     VFS_N90A_MOUSE_TYPE
 @LB67D:  rts
 
 ;Check if button state has changed
-LB67E:   jsr     LB65B              ; Get device type to X
+LB67E:   jsr     Get_Pointer_TypeX  ; Get device type to X
          lda     sheila_USRVIA_orb  ; Get buttons
          and     @LB6C7,X           ; Mask with button position for this device
-         cmp     $090d
+         cmp     VFS_N90D_MOUSE_BUTTON_STILL_ACTIVE
          beq     @LB698             ; Button state is the same
-         cmp     $090c
-         sta     $090c
+         cmp     VFS_N90C_MOUSE_LAST_BUTTON  ; 90c isn't initialized  so we can miss the first button press
+         sta     VFS_N90C_MOUSE_LAST_BUTTON  ; why isn't this after the BEQ below?
          beq     @LB697
-         sta     $090d              ; Set last button state to current button state
+         sta     VFS_N90D_MOUSE_BUTTON_STILL_ACTIVE             ; Set last button state to current button state
 @LB697:  rts
 
-@LB698:  stz     $090d              ; Clear last button state
-         lda     $090c
+@LB698:  stz     VFS_N90D_MOUSE_BUTTON_STILL_ACTIVE             ; Clear last button state
+         lda     VFS_N90C_MOUSE_LAST_BUTTON
          cmp     @LB6C7,X           ; Compare current button state with button locations
          beq     @LB697             ; No buttons pressed, exit
          ldy     #$0d               ; Prepare Y=<cr> for button 1
-         and     @LB6C8,X
+         and     @LB6C8,X           ; Mask with button 1
          beq     @LB6BF             ; Button 1 pressed
-         lda     $090c
+         lda     VFS_N90C_MOUSE_LAST_BUTTON              ; Get last button state
          ldy     #$c0               ; Prepare Y=f0 for button 3
-         and     @LB6CA,X
+         and     @LB6CA,X           ; Mask with button 3
          beq     @LB6BF             ; Button 3 pressed
+         ; else it must be button 2 so read the tab character
          lda     #OSBYTE_DB_RW_TABCODE
          ldx     #$00
          ldy     #$ff
@@ -2080,11 +2133,13 @@ LB6CB:   .byte   $10            ; Xdir
 LB6CC:   .byte   $08            ; Ydir
 
 ; second input device
-         .byte   $05
-         .byte   $e0
+         .byte   $05            ; Direction bits ( is this actually used?)
+
+         .byte   $e0            ; button mask
          .byte   $20
          .byte   $40
          .byte   $80
+
          .byte   $04
          .byte   $01
 
@@ -2124,13 +2179,13 @@ swap7PWSP_373_N933:
 ;*******************************************************************************
 parse16bitDecXA:
          ldx     #$03
-@slp:    lda     $093b,X    ;save 93b-93d on stack for workspace (TODO: why not ZP?)
+@slp:    lda     VFS_N93B_TEMPBUF,X    ;save 93b-93d on stack for workspace (TODO: why not ZP?)
          pha
          dex
          bpl     @slp
          lda     #$00       ;zero accumulator
-         sta     $093b
-         sta     $093c
+         sta     VFS_N93B_TEMPBUF
+         sta     VFS_N93B_TEMPBUF+1
          sec
          php
          jsr     skipCommaOrSpace
@@ -2146,35 +2201,35 @@ parse16bitDecXA:
          cmp     #':'
          bcs     @skError
 ; multiply current accumulator by 10, check for overflows
-         lda     $093b
-         sta     $093d
-         lda     $093c
-         sta     $093e
-         lda     $093b
+         lda     VFS_N93B_TEMPBUF
+         sta     VFS_N93B_TEMPBUF+2
+         lda     VFS_N93B_TEMPBUF+1
+         sta     VFS_N93B_TEMPBUF+3
+         lda     VFS_N93B_TEMPBUF
          asl     A
-         rol     $093c
+         rol     VFS_N93B_TEMPBUF+1
          bcs     @skError
          asl     A
-         rol     $093c
+         rol     VFS_N93B_TEMPBUF+1
          bcs     @skError
-         adc     $093d
-         sta     $093b
-         lda     $093c
-         adc     $093e
+         adc     VFS_N93B_TEMPBUF+2
+         sta     VFS_N93B_TEMPBUF
+         lda     VFS_N93B_TEMPBUF+1
+         adc     VFS_N93B_TEMPBUF+3
          bcs     @skError
-         sta     $093c
-         asl     $093b
-         rol     $093c
+         sta     VFS_N93B_TEMPBUF+1
+         asl     VFS_N93B_TEMPBUF
+         rol     VFS_N93B_TEMPBUF+1
          bcs     @skError
 ; get char back
          lda     (zp_vfsv_a8_textptr),Y
          and     #$0f
          clc
 ; add in and check for overflow
-         adc     $093b
-         sta     $093b
+         adc     VFS_N93B_TEMPBUF
+         sta     VFS_N93B_TEMPBUF
          bcc     @cysk
-         inc     $093c
+         inc     VFS_N93B_TEMPBUF+1
          beq     @skError
 @cysk:   plp
          clc                ;clear carry error flag
@@ -2186,17 +2241,17 @@ parse16bitDecXA:
          sec                ;set carry for error flag
          php
 @sksep:  plp                ;pop cy flag as set in routine
-         lda     $093b      ;get low accumulator byte
+         lda     VFS_N93B_TEMPBUF      ;get low accumulator byte
          sta     $af        ;store in here briefly ; TODO: could have used this above!
-         ldx     $093c      ;load high byte to return
+         ldx     VFS_N93B_TEMPBUF+1      ;load high byte to return
          pla
-         sta     $093b
+         sta     VFS_N93B_TEMPBUF
          pla
-         sta     $093c
+         sta     VFS_N93B_TEMPBUF+1
          pla
-         sta     $093d
+         sta     VFS_N93B_TEMPBUF+2
          pla
-         sta     $093e
+         sta     VFS_N93B_TEMPBUF+3
          lda     $af        ;get back low byte
          rts
 ; *TMAX <x>,<y>
@@ -2210,13 +2265,13 @@ VFSstarTMAX:
          jsr     parse16bitDecXA ;get second param
          bcs     pl2RestoreP9BrkBadNumber
          ldy     #$02
-         jsr     setMouseBoundsY ;save second param at offset Y=2
+         jsr     storeMouseYptrAX ;save second param at offset Y=2
          pla                ;unstack first param
          plx
-         dec     VFS_N90E_MousePos2      ;set some sort of flag?!
+         dec     VFS_N90E_PreviousMousePos      ; Fake a mouse move to force a redraw incase the pointer has chnages
          ldy     #$00       ;save at offset 0
-setMouseBoundsY:
-         and     #$fc       ;clear bottom bits of X
+storeMouseYptrAX:
+         and     #$fc       ;clear bottom bits
          sta     VFS_N900_MouseBounds,Y
          txa
          iny
@@ -2250,7 +2305,7 @@ VFSstarTSET:
          lda     #$fc
          ldx     #$03
 @setY:   ldy     #$06
-         jsr     setMouseBoundsY
+         jsr     storeMouseYptrAX
          pla
          plx
          cpx     #$05       ;check for X>=1280
@@ -2264,7 +2319,7 @@ VFSstarTSET:
          lda     #$fc
          ldx     #$04
 @setX:   ldy     #$04
-         jmp     setMouseBoundsY
+         jmp     storeMouseYptrAX
 
 ;*******************************************************************************
 ;* VFS_FSC3_STARCMD - parse a star command - passed from FSCV 3                *
@@ -2339,7 +2394,7 @@ VFS_FSC3_STARCMD:
          plx
          cpx     #$94
          beq     @LB89D
-         lda     $093a
+         lda     VFS_N93A_SEARCHING_IN_PROGRESS
          beq     @LB892
          jsr     waitForSeek
 @LB892:  jsr     FCMD_GetResult
@@ -2464,6 +2519,7 @@ LB965:   .byte   %01111101 ; 125 0x7D
          .byte   %00110000 ; 48 0x30
          .byte   %00101101 ; 45 0x2d
          .byte   %00101011 ; 43 0x2b
+
          .byte   %00000001 ; 1
          .byte   %00000010 ; 2
          .byte   %00000100 ; 4
@@ -2479,6 +2535,8 @@ LB990:   .byte   %00000000 ; 0
          .byte   %01000000 ; 64 0x40
          .byte   %10000000 ;128 0x80
          .byte   %11000000 ;192 0xc0
+
+;; is this actually used ?
          .byte   %00000000 ; 0
          .byte   %01000000 ; 64
          .byte   %10000000 ;128
