@@ -1172,7 +1172,8 @@ LB022:   lda     VFS_N909_MOUSEVISIBLE                ; If mouse is already hidd
          rts
 ; Update pointer if mouse has moved
 ; ---------------------------------
-LB045:   lda     VFS_N904_MousePos      ; Current ADVAL(7) low byte
+Move_Pointer_if_mouse_moved: 
+         lda     VFS_N904_MousePos      ; Current ADVAL(7) low byte
          cmp     VFS_N90E_PreviousMousePos
          bne     @LB065                 ; Mouse X has moved
          lda     VFS_N904_MousePos+2    ; Current ADVAL(8) low byte
@@ -1631,12 +1632,12 @@ Setup_mouse_pointer_workspace:
 
         ; ZP_temp is 0 or 0xFF
 @LB36B:  lda     VFS_N908_MODESAVE
-         beq     @LB3C1         ; mode 0
+         beq     @mode0         ; mode 0
          cmp     #$01
-         beq     @LB377         ; mode 1
-         jmp     @LB3FE         ; mode 2
+         beq     @mode1         ; mode 1
+         jmp     @mode2         ; mode 2
 
-@LB377:  jsr     @LB37D         ; mode 1
+@mode1:  jsr     @LB37D         ; mode 1
          jsr     @LB37D
 
 @LB37D:  ldx     #$00           ; Called three times
@@ -1682,7 +1683,7 @@ Setup_mouse_pointer_workspace:
          inc     ZP_EXTR_PTR_A + 1
 @LB3C0:  rts
 
-@LB3C1:  jsr     @LB3C7     ; mode 0
+@mode0:  jsr     @LB3C7     ; mode 0
          jsr     @LB3C7
 @LB3C7:  jsr     @LB3D8
          lda     ZP_EXTRA_BASE+1
@@ -1717,7 +1718,7 @@ Setup_mouse_pointer_workspace:
          bne     @LB3DA
          rts
 
-@LB3FE:  jsr     @LB440     ; mode 2
+@mode2:  jsr     @LB440     ; mode 2
          jsr     @LB407
          jmp     @LB440
 
@@ -2056,7 +2057,7 @@ Serv15_Poll100Hz:
          jsr     LB67E                  ; Insert keypress if button state has changed
          lda     VFS_N909_MOUSEVISIBLE
          beq     @poh4
-         jsr     LB045
+         jsr     Move_Pointer_if_mouse_moved
 @poh4:   jsr     RestoreZpAndPage9
          ply
          plx
