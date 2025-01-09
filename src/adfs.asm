@@ -5955,9 +5955,9 @@ L9D1E:
 
 .ifdef HD_SCSI_VFS
 
-			VFS_N923_flag = $0923
+			VFS_N923_flag = $0923 ; =0 if IRQv1 is default ; surely we can find a ZP for this temp variable
 
-VFS_Serv27:
+VFS_Serv27: ;  Reset
         	php                                     ; 9363 08                       .
         	sei                                     ; 9364 78                       x
         	stz     VFS_0D95_20Hz_CTDN              ; 9365 9C 95 0D                 ...
@@ -5999,10 +5999,12 @@ VFS_L9399:
         	sta     VFS_OLD_BYTEV                   ; 93AF 8D 97 0D                 ...
         	lda     BYTEV+1                         ; 93B2 AD 0B 02                 ...
         	sta     VFS_OLD_BYTEV+1                 ; 93B5 8D 98 0D                 ...
+
         	ldy     #$0F                            ; 93B8 A0 0F                    ..
         	sty     BYTEV                           ; 93BA 8C 0A 02                 ...
         	ldx     #$FF                            ; 93BD A2 FF                    ..
         	stx     BYTEV+1                         ; 93BF 8E 0B 02                 ...
+
 .ifndef VFS_TRIM_REDUNDANT
         	lda     ($A8),y                         ; 93C2 B1 A8                    ..
         	sta     $091D                           ; 93C4 8D 1D 09                 ...
@@ -6010,6 +6012,7 @@ VFS_L9399:
         	lda     #<OSBYTE_Extended_Vectorcode    ; 93C7 A9 B6                    ..
         	sta     ($A8),y                         ; 93C9 91 A8                    ..
         	iny                                     ; 93CB C8                       .
+
 .ifndef VFS_TRIM_REDUNDANT
         	lda     ($A8),y                         ; 93CC B1 A8                    ..
         	sta     $091E                           ; 93CE 8D 1E 09                 ...
