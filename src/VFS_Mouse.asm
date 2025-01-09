@@ -5,6 +5,13 @@
 		.include "hardware.inc"
 
 
+
+        .export VFS_0D95_20Hz_CTDN
+        .export VFS_0D92_FLAG_POLL100
+        .export VFS_0D93_CTDN_SEARCH
+        .export VFS_OLD_BYTEV
+        .export VFS_D9D_OLD_IRQ1V
+
 		.export VFS_ServiceCallsExtra
 		.export VFS_FSC3_STARCMD
 		.export VFS_Serv9_extra
@@ -77,11 +84,20 @@ VFS_N912_MouseX =$0912 ; 16 bit X
 VFS_N914_MouseX2 =$0914 ; 16 bit X
 VFS_N916_MouseY =$0916 ; 16 bit Y
 
+; d1B set to zero in adfs.asm but never used
+; d1C set to zero in adfs.asm but never used
+; d1D written too but never used
+; d1E written too but never used
+; d1F written too but never used
+; 920 - 922 used
+; NB 923 defined in ADFS.asm used as a flag
+
 VFS_N924_PTR_Q = $0924
 VFS_N926_ZPSAVE = $0926
+; 927-931 unused
 VFS_N932_ACCON_SAVE = $0932
 
-; later bytes don't get backed up to the private VFS mouse workspace
+; 933 - +7 get copied
 ; but the next 8 bytes are copied to the workspace
 
 VFS_N937_PlayStart = $0937  ;16 bit starting frame number for play
@@ -92,9 +108,12 @@ VFS_N93A_SEARCHING_IN_PROGRESS = $093a    ;0 or 13 (searching in progress)
 VFS_N93B_TEMPBUF = $093b ; temporary 4 byte buffer only used parse16bitDecXA
 
 VFS_0D92_FLAG_POLL100 = $0d92   ; 0 or 255
-VFS_0D93_CTDN_SEARCH = $0d93
-VFS_0D94_CTDN_QQQQQ = $0d94
+VFS_0D93_CTDN_SEARCH = $0d93 ; $0d93 $0d94 time counts @ 25Hz ?
 VFS_0D95_20Hz_CTDN = $0d95  ;;count down 4..0
+; d96 set to zero in adfs.asm but never used
+VFS_OLD_BYTEV = $0D97 ; 0D97-0D98
+; D99,a,b,C JSR FF06:RTI
+VFS_D9D_OLD_IRQ1V = $0d9d ; 0D9D-0D9E
 
 WKSP_ADFS_215_CMDBUF = $c215
 
@@ -623,7 +642,7 @@ enableSearchPoll:                                   ; only called from starSEARC
          lda     #$f0
          sta     VFS_0D93_CTDN_SEARCH
          lda     #$00
-         sta     VFS_0D94_CTDN_QQQQQ
+         sta     VFS_0D93_CTDN_SEARCH + 1
          rts
 
 ;*******************************************************************************
@@ -674,7 +693,7 @@ FCMD_E1_VideoOn:
 ;
 ; return Cy on fail or timeout
 waitForSeek:
-         lda     VFS_0D94_CTDN_QQQQQ
+         lda     VFS_0D93_CTDN_SEARCH + 1
          bmi     disableSearchPoll
          bit     zp_mos_escape
          bpl     @noesc
@@ -690,7 +709,7 @@ waitForSeek:
          bne     checkNoFrame
 disableSearchPoll:
          stz     VFS_0D93_CTDN_SEARCH ;OK disable timeout counters
-         stz     VFS_0D94_CTDN_QQQQQ
+         stz     VFS_0D93_CTDN_SEARCH + 1
          stz     VFS_N93A_SEARCHING_IN_PROGRESS
          clc
          rts
@@ -1841,7 +1860,7 @@ OSBYTE_Extended_Vectorcode:
          cmp     #$ff                   ; Jump if was exteneded
          beq     @LB4C6
          pla
-         jmp     ($0d97)                ; jump to old vector
+         jmp     (VFS_OLD_BYTEV)                ; jump to old vector
 ; Old BYTEV was extended, fiddle around to vector via it
 @LB4C6:  php
          sei
@@ -1940,7 +1959,7 @@ Extended_IRQ1_Vector:
          pha
          php
          lda     $fc
-         jmp     ($0d9d)                ; Pass on to oldIRQ1V
+         jmp     (VFS_D9D_OLD_IRQ1V)                ; Pass on to oldIRQ1V
 
          rts
 
@@ -2043,11 +2062,11 @@ Serv15_Poll100Hz:
          pha
          lda     #$04
          sta     VFS_0D95_20Hz_CTDN     ; Reset ticker to 4
-         lda     VFS_0D94_CTDN_QQQQQ
+         lda     VFS_0D93_CTDN_SEARCH + 1
          bmi     @sk2
          lda     VFS_0D93_CTDN_SEARCH
          bne     @sk1
-         dec     VFS_0D94_CTDN_QQQQQ
+         dec     VFS_0D93_CTDN_SEARCH + 1
 @sk1:    dec     VFS_0D93_CTDN_SEARCH
 @sk2:    lda     VFS_0D92_FLAG_POLL100
          beq     @poh3

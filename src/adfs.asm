@@ -5627,7 +5627,7 @@ L9240:  plp                                     ; 9240 28                       
         lda     #$1B                            ; 9243 A9 1B                    ..
         jsr     SCSI_Command_AXY_CkErr          ; 9245 20 93 AB                  ..
 VFS_L9248:
-	pla                                     ; 9248 68                       h
+		pla                                     ; 9248 68                       h
         cmp     #$56                            ; 9249 C9 56                    .V
         bne     @QQ                           	; 924B D0 03                    ..
         jsr     InvalidateFSMandDIR             ; 924D 20 59 84                  Y.
@@ -5742,7 +5742,7 @@ L92AA:  jsr     L9C7D                         	; 92AA 20 D0 92                  
 L92BD:  ldy     WKSP_ADFS_100_FSM_S1+$FD        ; 92BD AC FD C1                 ...
         beq     VFS_L92CA                       ; 92C0 F0 08                    ..
         ldx     L9A8F-1,y                       ; 92C2 BE 69 8F                 .i.
-        ldy     #>L9A8F	                        ; 92C5 A0 8F                    ..
+        ldy     #>L9A92                         ; 92C5 A0 8F                    ..
         jsr     OSCLI                           ; 92C7 20 F7 FF                  ..
 VFS_L92CA:
  	ldx     $F4                             ; 92CA A6 F4                    ..
@@ -5954,17 +5954,22 @@ L9D1E:
 .endif
 
 .ifdef HD_SCSI_VFS
+
+			VFS_N923_flag = $0923
+
 VFS_Serv27:
         	php                                     ; 9363 08                       .
         	sei                                     ; 9364 78                       x
-        	stz     $0D95                           ; 9365 9C 95 0D                 ...
-        	stz     $0D96                           ; 9368 9C 96 0D                 ...
-        	stz     $0D92                           ; 936B 9C 92 0D                 ...
+        	stz     VFS_0D95_20Hz_CTDN              ; 9365 9C 95 0D                 ...
+.ifndef VFS_TRIM_REDUNDANT
+        	stz     $0D96                           ; 9368 9C 96 0D                 ... ;; not actually used
+.endif
+        	stz     VFS_0D92_FLAG_POLL100           ; 936B 9C 92 0D                 ...
         	lda     #$FF                            ; 936E A9 FF                    ..
-        	sta     $0D94                           ; 9370 8D 94 0D                 ...
+        	sta     VFS_0D93_CTDN_SEARCH + 1        ; 9370 8D 94 0D                 ...
         	jsr     PreserveZpAndPage9              ; 9373 20 28 B2                  (.
         	lda     #OSBYTE_16_INCPOLL              ; 9376 A9 16                    ..
-        	sta     $0923                           ; 9378 8D 23 09                 .#.
+        	sta     VFS_N923_flag                          ; 9378 8D 23 09                 .#.
         	jsr     OSBYTE                          ; 937B 20 F4 FF                  ..
         	lda     OSDEFVEC_PTR                    ; 937E AD B7 FF                 ...
         	sta     $A8                             ; 9381 85 A8                    ..
@@ -5975,58 +5980,71 @@ VFS_L938A:  	lda     ($A8),y                         ; 938A B1 A8               
         	cmp     USERV,y                         ; 938C D9 00 02                 ...
         	bne     VFS_L9399                       ; 938F D0 08                    ..
         	dey                                     ; 9391 88                       .
-        	cpy	#$03
+        	cpy		#$03
 
         	bne     VFS_L938A                       ; 9394 D0 F4                    ..
-        	stz     $0923                           ; 9396 9C 23 09                 .#.
-VFS_L9399:  	lda     #OSBYTE_A8_ADDR_EXTVEC                            ; 9399 A9 A8                    ..
+        	stz     VFS_N923_flag                    ; 9396 9C 23 09                 .#.
+VFS_L9399:
+  			lda     #OSBYTE_A8_ADDR_EXTVEC          ; 9399 A9 A8                    ..
         	ldx     #$00                            ; 939B A2 00                    ..
         	ldy     #$FF                            ; 939D A0 FF                    ..
         	jsr     OSBYTE                          ; 939F 20 F4 FF                  ..
         	stx     $A8                             ; 93A2 86 A8                    ..
         	sty     $A9                             ; 93A4 84 A9                    ..
+.ifndef VFS_TRIM_REDUNDANT
         	stx     $091B                           ; 93A6 8E 1B 09                 ...
         	sty     $091C                           ; 93A9 8C 1C 09                 ...
+.endif
         	lda     BYTEV                           ; 93AC AD 0A 02                 ...
-        	sta     $0D97                           ; 93AF 8D 97 0D                 ...
+        	sta     VFS_OLD_BYTEV                   ; 93AF 8D 97 0D                 ...
         	lda     BYTEV+1                         ; 93B2 AD 0B 02                 ...
-        	sta     $0D98                           ; 93B5 8D 98 0D                 ...
+        	sta     VFS_OLD_BYTEV+1                 ; 93B5 8D 98 0D                 ...
         	ldy     #$0F                            ; 93B8 A0 0F                    ..
         	sty     BYTEV                           ; 93BA 8C 0A 02                 ...
         	ldx     #$FF                            ; 93BD A2 FF                    ..
         	stx     BYTEV+1                         ; 93BF 8E 0B 02                 ...
+.ifndef VFS_TRIM_REDUNDANT
         	lda     ($A8),y                         ; 93C2 B1 A8                    ..
         	sta     $091D                           ; 93C4 8D 1D 09                 ...
+.endif
         	lda     #<OSBYTE_Extended_Vectorcode    ; 93C7 A9 B6                    ..
         	sta     ($A8),y                         ; 93C9 91 A8                    ..
         	iny                                     ; 93CB C8                       .
+.ifndef VFS_TRIM_REDUNDANT
         	lda     ($A8),y                         ; 93CC B1 A8                    ..
         	sta     $091E                           ; 93CE 8D 1E 09                 ...
+.endif
         	lda     #>OSBYTE_Extended_Vectorcode    ; 93D1 A9 B4                    ..
         	sta     ($A8),y                         ; 93D3 91 A8                    ..
         	iny                                     ; 93D5 C8                       .
+.ifndef VFS_TRIM_REDUNDANT
         	lda     ($A8),y                         ; 93D6 B1 A8                    ..
         	sta     $091F                           ; 93D8 8D 1F 09                 ...
+.endif
         	lda     $F4                             ; 93DB A5 F4                    ..
         	sta     ($A8),y                         ; 93DD 91 A8                    ..
-        	lda     $0923                           ; 93DF AD 23 09                 .#.
+        	lda     VFS_N923_flag                   ; 93DF AD 23 09                 .#.
         	bne     VFS_L9420                       ; 93E2 D0 3C                    .<
         	lda     IRQ1V                           ; 93E4 AD 04 02                 ...
-        	sta     $0D9D                           ; 93E7 8D 9D 0D                 ...
+        	sta     VFS_D9D_OLD_IRQ1V               ; 93E7 8D 9D 0D                 ...
         	lda     IRQ1V+1                         ; 93EA AD 05 02                 ...
-        	sta     $0D9E                           ; 93ED 8D 9E 0D                 ...
-        	lda     #$20                            ; 93F0 A9 20                    .
+        	sta     VFS_D9D_OLD_IRQ1V+1             ; 93ED 8D 9E 0D                 ...
+
+			; Store JSR &FF06:RTI  ( Extended_IRQ1_Vector )
+			lda     #$20                            ; 93F0 A9 20                    .
         	sta     $0D99                           ; 93F2 8D 99 0D                 ...
-        	ldy     #$06                            ; 93F5 A0 06                    ..
+			ldy     #$06                            ; 93F5 A0 06                    ..
         	sty     $0D9A                           ; 93F7 8C 9A 0D                 ...
-        	lda     #$FF                            ; 93FA A9 FF                    ..
+			lda     #$FF                            ; 93FA A9 FF                    ..
         	sta     $0D9B                           ; 93FC 8D 9B 0D                 ...
-        	lda     #$40                            ; 93FF A9 40                    .@
+			lda     #$40                            ; 93FF A9 40                    .@
         	sta     $0D9C                           ; 9401 8D 9C 0D                 ...
-        	lda     #$99                            ; 9404 A9 99                    ..
+			; Store ptr to 0D99
+			lda     #$99                            ; 9404 A9 99                    ..
         	sta     IRQ1V                           ; 9406 8D 04 02                 ...
         	lda     #$0D                            ; 9409 A9 0D                    ..
         	sta     IRQ1V+1                         ; 940B 8D 05 02                 ...
+
         	lda     #<Extended_IRQ1_Vector          ; 940E A9 4F                    .O
         	sta     ($A8),y                         ; 9410 91 A8                    ..
         	iny                                     ; 9412 C8                       .
@@ -6285,7 +6303,11 @@ L9DEC:		lda	WKSP_ADFS_215_DSKOPSAV_RET,Y
 L9DF6:		jsr	L92A8
 
 .ifdef HD_SCSI_VFS
-		.byte	$0D, "Videodisc FS 1.70"	; Help string
+		.byte	$0D, "Videodisc FS "	; Help string
+		.byte	(VERBASE >> 8)+'0'		; Version string
+		.byte	"."
+		.byte	((VERBASE & $F0) >> 4)+'0'
+		.byte	(VERBASE & $0F)+'0'
 		.byte	$8D
 .elseif .def(HD_SCSI_XDFS)
 		.byte	$0D, "External ADFS 1.50"	; Help string
@@ -9565,13 +9587,13 @@ LB231:		lda	WKSP_ADFS_332			; Handle stored from *RUN?
 ;; -----------
 LB23E:
 .ifdef HD_SCSI_VFS
-		tya                                     ; A065 98                       .
-        	cmp     #$80                            ; A066 C9 80                    ..
-        	bne     VFS_LA06D			; A068 D0 03                    ..
-        	jsr     L830B                           ; A06A 20 C3 82                  ..
-VFS_LA06D:  	and     #$40                            ; A06D 29 40                    )@
-        	tay
-
+		tya                         ; A065 98                       .
+        cmp     #$80                ; A066 C9 80                    ..
+        bne     VFS_LA06D			; A068 D0 03                    ..
+        jsr     L830B               ; A06A 20 C3 82                  ..
+VFS_LA06D:
+  		and     #$40                ; A06D 29 40                    )@
+        tay
 .endif
 
 		ldx	#$09				; Look for a spare channel
@@ -10523,8 +10545,8 @@ VFS_LA5E3:	sta	$B5
 		jsr	LB8BC
 .ifdef HD_SCSI_VFS
 		lda     #$00                            ; A5E8 A9 00                    ..
-        	jsr     LB8A5                           ; A5EA 20 49 A5                  I.
-        	jmp     LB925
+        jsr     LB8A5                           ; A5EA 20 49 A5                  I.
+        jmp     LB925
 .else
 		bmi	LB925
 .endif
