@@ -89,7 +89,7 @@ VFS_N939_RETRY_CTR = $0939  ;Countdown retries of search/seeks
 
 VFS_N93A_SEARCHING_IN_PROGRESS = $093a    ;0 or 13 (searching in progress)
 
-VFS_N93B_TEMPBUF = VFS_N93B_TEMPBUF ; temporary 4 byte buffer only used parse16bitDecXA
+VFS_N93B_TEMPBUF = $093b ; temporary 4 byte buffer only used parse16bitDecXA
 
 VFS_0D92_FLAG_POLL100 = $0d92   ; 0 or 255
 VFS_0D93_CTDN_SEARCH = $0d93
@@ -1172,7 +1172,7 @@ LB022:   lda     VFS_N909_MOUSEVISIBLE                ; If mouse is already hidd
          rts
 ; Update pointer if mouse has moved
 ; ---------------------------------
-Move_Pointer_if_mouse_moved: 
+Move_Pointer_if_mouse_moved:
          lda     VFS_N904_MousePos      ; Current ADVAL(7) low byte
          cmp     VFS_N90E_PreviousMousePos
          bne     @LB065                 ; Mouse X has moved
@@ -1474,7 +1474,7 @@ Restore_memory_under_mouse:
          bmi     @LB2C5
          cmp     #$30
          bcc     @LB2D1
-         lda     $0915
+         lda     VFS_N914_MouseX2+1
          bmi     @LB2C5
          cmp     #$05
          bcs     @LB2C2

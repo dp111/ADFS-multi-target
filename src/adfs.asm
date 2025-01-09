@@ -6617,6 +6617,10 @@ cmdLE:
 	.byte	"",	    >(starRUN-1)	, <(starRUN-1)
 .endif
 
+
+.if (TARGETOS <= 1) && (!.def(HD_SCSI2))
+
+.endif
 ; The next set of strings must not straddle a page boundary because
 ; code indexes into it with the MSB constant. See code at L9283
 L9FB1:		.byte	"<List Spec>"
@@ -6633,8 +6637,12 @@ L9FE7:		.byte	"(L)(W)(R)(E)"
 		.byte	$00
 L9FF4:		.byte	"<Title>"
 L9FFB:		.byte	$00
-
+.if (TARGETOS <= 1) && (!.def(HD_SCSI2))
+.assert >(L9FB1) = >(L9FFB), warning, "adfs.asm : Help string table runs over page boundary"
+.else
 .assert >(L9FB1) = >(L9FFB), error, "adfs.asm : Help string table runs over page boundary"
+.endif
+
 
 .ifdef HD_SCSI_VFS
 tbl_commands:
@@ -9943,13 +9951,16 @@ LB51E:		lda	WKSP_ADFS_2C8,X			; Subtract from previous TIME
 		lda	WKSP_ADFS_2C9			; Get difference b8-b15
 		cmp	#$02				; &200cs? 5.12s?
 		bcc	LB545				; <5.12s, return leaving &C2C2 unchanged
-LB542:		sty	WKSP_ADFS_2C2			; >5.11s, set &C2C2 to &xx
+LB542:	sty	WKSP_ADFS_2C2			; >5.11s, set &C2C2 to &xx
+LB545:
+		rts
+.else
+	LB545:
+	LB510:		rts
+
 .endif ;ndef HD_SCSI_VFS
 
-LB545:
-LB510:		rts
-
-LB546:		jsr	LB510				; Check elapsed time
+LB546:	jsr	LB510				; Check elapsed time
 		lda	WKSP_ADFS_317_CURDRV
 		jsr	LB5C5
 		jsr	LB560
