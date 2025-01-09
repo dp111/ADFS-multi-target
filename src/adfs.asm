@@ -1226,7 +1226,6 @@ strr_YES:	.byte	$0D, "SEY"
 str_Hugo:	.byte	$00, "Hugo"
 
 .ifdef HD_SCSI_VFS
-L84E1:
 L8631:		rts
 .else
 
@@ -6617,10 +6616,6 @@ cmdLE:
 	.byte	"",	    >(starRUN-1)	, <(starRUN-1)
 .endif
 
-
-.if (TARGETOS <= 1) && (!.def(HD_SCSI2))
-
-.endif
 ; The next set of strings must not straddle a page boundary because
 ; code indexes into it with the MSB constant. See code at L9283
 L9FB1:		.byte	"<List Spec>"
@@ -6637,10 +6632,10 @@ L9FE7:		.byte	"(L)(W)(R)(E)"
 		.byte	$00
 L9FF4:		.byte	"<Title>"
 L9FFB:		.byte	$00
-.if (TARGETOS <= 1) && (!.def(HD_SCSI2))
-.assert >(L9FB1) = >(L9FFB), warning, "adfs.asm : Help string table runs over page boundary"
+.if (TARGETOS <= 1) && (.def(HD_SCSI2))
+	.assert >(L9FB1) = >(L9FFB), warning, "adfs.asm : Help string table runs over page boundary"
 .else
-.assert >(L9FB1) = >(L9FFB), error, "adfs.asm : Help string table runs over page boundary"
+	.assert >(L9FB1) = >(L9FFB), error, "adfs.asm : Help string table runs over page boundary"
 .endif
 
 
