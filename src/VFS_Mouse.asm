@@ -209,7 +209,13 @@ VFS_ServiceCallsExtra:
          adc     zp_vfsv_a8_textptr
          sta     zp_vfsv_a8_textptr
          bcc     @skinc
+
+.ifdef VFS_BUG_FIX
+         inc     zp_vfsv_a8_textptr + 1 
+.else
          inc     zp_vfsv_a8_textptr ;BUG? should be A9!
+.endif
+
 @skinc:  lda     VFSM_cmdTable,X
          sta     $ab
          lda     VFSM_cmdTable+1,X
