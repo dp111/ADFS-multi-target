@@ -24,9 +24,9 @@
         .export OSBYTE_Extended_Vectorcode
         .export Extended_IRQ1_Vector
 
-
         .export SCSICMD_C8_VENDOR_FCMDRESULT
-        .export SCSI_Command_AXY_CkErr
+        .export SCSICMD_1B_STARTSTOPUNIT
+
 		.segment "vfs_mouse"
 
 
@@ -216,7 +216,7 @@ VFS_ServiceCallsExtra:
          bcc     @skinc
 
 .ifdef VFS_BUG_FIX
-         inc     zp_vfsv_a8_textptr + 1 
+         inc     zp_vfsv_a8_textptr + 1
 .else
          inc     zp_vfsv_a8_textptr ;BUG? should be A9!
 .endif
@@ -2095,11 +2095,11 @@ Serv15_Poll100Hz:
 @poh2:   dey                ;decrement semaphore
 .ifdef VFS_TRIM_REDUNDANT
          cpy     #$00
-.endif         
+.endif
          bne     @poh
 .ifdef VFS_TRIM_REDUNDANT
          tya
-.else         
+.else
          lda     #$00       ;if we're the last then cancel the service call
 .endif
 @poh:    plp
