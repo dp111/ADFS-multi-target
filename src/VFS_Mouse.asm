@@ -2093,7 +2093,7 @@ Serv15_Poll100Hz:
          plx
 @poh3:   pla
 @poh2:   dey                ;decrement semaphore
-.ifdef VFS_TRIM_REDUNDANT
+.ifndef VFS_TRIM_REDUNDANT
          cpy     #$00
 .endif
          bne     @poh
