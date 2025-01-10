@@ -11,6 +11,7 @@
         .export VFS_0D93_CTDN_SEARCH
         .export VFS_OLD_BYTEV
         .export VFS_D9D_OLD_IRQ1V
+        .export VFS_N93A_SEARCHING_IN_PROGRESS
 
 		.export VFS_ServiceCallsExtra
 		.export VFS_FSC3_STARCMD
@@ -23,6 +24,9 @@
         .export OSBYTE_Extended_Vectorcode
         .export Extended_IRQ1_Vector
 
+
+        .export SCSICMD_C8_VENDOR_FCMDRESULT
+        .export SCSI_Command_AXY_CkErr
 		.segment "vfs_mouse"
 
 
@@ -97,8 +101,9 @@ VFS_N926_ZPSAVE = $0926
 ; 927-931 unused
 VFS_N932_ACCON_SAVE = $0932
 
+VFS_N933_BASE = $0933
 ; 933 - +7 get copied
-; but the next 8 bytes are copied to the workspace
+; the next 8 bytes are copied to the workspace
 
 VFS_N937_PlayStart = $0937  ;16 bit starting frame number for play
 VFS_N939_RETRY_CTR = $0939  ;Countdown retries of search/seeks
@@ -441,8 +446,8 @@ SCSI_Command_AXY:
          dey
          bpl     @clp
          inc     WKSP_ADFS_215_CMDBUF+9
-         ldx     #$15
-         ldy     #$c2
+         ldx     #<WKSP_ADFS_215_CMDBUF
+         ldy     #>WKSP_ADFS_215_CMDBUF
          jmp     CommandExecXY
 
 LABC3rts:
@@ -1862,7 +1867,7 @@ OSBYTE_Extended_Vectorcode:
          cmp     #$80
          beq     @LB50A                 ; Jump with ADVAL
 @LB4BA:  pha
-         lda     $0d98
+         lda     VFS_OLD_BYTEV+1
          cmp     #$ff                   ; Jump if was exteneded
          beq     @LB4C6
          pla
@@ -2088,9 +2093,15 @@ Serv15_Poll100Hz:
          plx
 @poh3:   pla
 @poh2:   dey                ;decrement semaphore
+.ifdef VFS_TRIM_REDUNDANT
          cpy     #$00
+.endif         
          bne     @poh
+.ifdef VFS_TRIM_REDUNDANT
+         tya
+.else         
          lda     #$00       ;if we're the last then cancel the service call
+.endif
 @poh:    plp
          rts
 
@@ -2189,9 +2200,9 @@ swap7PWSP_373_N933:
          lda     #<VFS_PWSKP_373_SAVE_N933
          sta     $ac
          ldy     #$07
-@lp:     ldx     $0933,Y
+@lp:     ldx     VFS_N933_BASE,Y
          lda     ($ac),Y
-         sta     $0933,Y
+         sta     VFS_N933_BASE,Y
          txa
          sta     ($ac),Y
          dey

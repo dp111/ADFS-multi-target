@@ -339,9 +339,7 @@ ZP_ADFS_RETRY_CTDN		= $CE
 .endif
 
 .ifdef HD_SCSI_VFS
-	; workspace in page 9 over the top of ENVELOPE
 
-WKSP_VFS_93A_ILACE_SAVE	= $93A
 WKSP_VFS_E00_TXTBUF = WKSP_BASE + $e00
 
 .endif

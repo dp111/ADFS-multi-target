@@ -5505,7 +5505,8 @@ L9B94:
 		lda	SYSVARS_291_ILACE		; get interlace flag
 		beq	VFS_L91B2
 		jmp	swapP373N933brkTurnIlaceOn
-VFS_L91B2:	sta	WKSP_VFS_93A_ILACE_SAVE		; save interlace flag
+VFS_L91B2:	
+		sta	VFS_N93A_SEARCHING_IN_PROGRESS		; clear seraching in progress
 		jsr	swap7PWSP_373_N933
 		plp
 		stz	WKSP_ADFS_22F
@@ -5607,13 +5608,14 @@ L9C10:
 .endif
 
 L9C18:		ldy	#$03				; Copy current context to backup context
-L9C1A:		lda	WKSP_ADFS_314,Y
+L9C1A:	
+    	lda	WKSP_ADFS_314,Y
 		sta	WKSP_ADFS_22C_CSD,Y
 		dey
 		bpl	L9C1A
 
 .ifdef HD_SCSI_VFS
-		jsr	L9C7D
+		jsr	    L9C7D							; check for tube
         lda     WKSP_ADFS_22F                   ; 922B AD 2F C2                 ./.
         cmp     #$FF                            ; 922E C9 FF                    ..
         bne     L9240                           ; 9230 D0 0E                    ..
@@ -5624,7 +5626,7 @@ L9C1A:		lda	WKSP_ADFS_314,Y
         sta     WKSP_ADFS_22C                   ; 923D 8D 2C C2                 .,.
 L9240:  plp                                     ; 9240 28                       (
         bcs     VFS_L9248                       ; 9241 B0 05                    ..
-        lda     #$1B                            ; 9243 A9 1B                    ..
+        lda     #SCSICMD_1B_STARTSTOPUNIT       ; 9243 A9 1B                    ..
         jsr     SCSI_Command_AXY_CkErr          ; 9245 20 93 AB                  ..
 VFS_L9248:
 		pla                                     ; 9248 68                       h
@@ -5733,7 +5735,7 @@ L92AA:  jsr     L9C7D                         	; 92AA 20 D0 92                  
         pla                                     ; 92AD 68                       h
         pha                                     ; 92AE 48                       H
         bne     VFS_L92CA                       ; 92AF D0 19                    ..
-        ldx     WKSP_ADFS_317_CURDRV		; 92B1 AE 17 C3                 ...
+        ldx     WKSP_ADFS_317_CURDRV		    ; 92B1 AE 17 C3                 ...
         inx                                     ; 92B4 E8                       .
         bne     L92BD                           ; 92B5 D0 06                    ..
         stx     WKSP_ADFS_26F                   ; 92B7 8E 6F C2                 .o.
@@ -5745,13 +5747,14 @@ L92BD:  ldy     WKSP_ADFS_100_FSM_S1+$FD        ; 92BD AC FD C1                 
         ldy     #>L9A92                         ; 92C5 A0 8F                    ..
         jsr     OSCLI                           ; 92C7 20 F7 FF                  ..
 VFS_L92CA:
- 	ldx     $F4                             ; 92CA A6 F4                    ..
+ 	    ldx     $F4                             ; 92CA A6 F4                    ..
         ply                                     ; 92CC 7A                       z
         lda     #$00                            ; 92CD A9 00                    ..
         rts                                     ; 92CF 60                       `
 .endif
 
-L9C7D:		lda	#OSBYTE_EA_RW_TUBEPRESENT
+L9C7D:	
+     	lda	#OSBYTE_EA_RW_TUBEPRESENT
 		jsr	OSBYTEYFFX00
 
 .ifdef USE65C12
@@ -5781,7 +5784,8 @@ L9C8B:		sta	ZP_ADFS_FLAGS
 		bne	L9C9B
 		stx	WKSP_ADFS_26F
 		jsr	LA1A1
-L9C9B:		ldy	WKSP_ADFS_100_FSM_S1 + $FD	; Get boot option
+L9C9B:	
+    	ldy	WKSP_ADFS_100_FSM_S1 + $FD	; Get boot option
 		beq	restoreROMandY_A0rts				; Zero, jump to finish
 		ldx	L9A8F-1,Y			; Get low byte of boot command address
 		ldy	#>L9A8F				; Get high byte of boot command address
@@ -5887,7 +5891,11 @@ Serv24:		dey					; ADFS needs one page
 ;; =========================================
 Serv25:
 .ifdef HD_SCSI_VFS
+ .ifdef VFS_BUG_FIX
+	    ldx	#FSINFOLEN-1
+ .else
 		ldx	#$15		; TODO: bug?
+ .endif
 .else
 		ldx	#FSINFOLEN-1
 .endif
@@ -6170,12 +6178,12 @@ L9D76:		lda	$EF				; Get OSWORD number
 .ifdef HD_SCSI_VFS
 		cmp	#OSWORD_VFS_SPECIAL
 		bne	skOSW_VFS
-	ldx     #$00                            ; 947F A2 00                    ..
-        ldy     #$CE                            ; 9481 A0 CE                    ..
-        lda     #$C8                            ; 9483 A9 C8                    ..
+		ldx     #<WKSP_VFS_E00_TXTBUF           ; 947F A2 00                    ..
+        ldy     #>WKSP_VFS_E00_TXTBUF           ; 9481 A0 CE                    ..
+        lda     #SCSICMD_C8_VENDOR_FCMDRESULT   ; 9483 A9 C8                    ..
         jsr     SCSI_Command_AXY_CkErr          ; 9485 20 93 AB                  ..
         ldy     #$0F                            ; 9488 A0 0F                    ..
-L948A:  lda     $CE00,y                         ; 948A B9 00 CE                 ...
+L948A:  lda     WKSP_VFS_E00_TXTBUF,y           ; 948A B9 00 CE                 ...
         sta     ($F0),y                         ; 948D 91 F0                    ..
         dey                                     ; 948F 88                       .
         bpl     L948A                           ; 9490 10 F8                    ..
