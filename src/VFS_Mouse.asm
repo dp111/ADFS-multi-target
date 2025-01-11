@@ -29,6 +29,13 @@
 
 		.segment "vfs_mouse"
 
+.macro ZEROY
+.ifdef VFS_OPTIMISE
+        ldy     #$00
+.else
+        jsr    setYeq0
+.endif
+.endmacro
 
 CFGBITS_01_EJECT = 1
 ZP_EXTRA_LEN =   12
@@ -471,7 +478,7 @@ jmpSwapP373N933brkBadNumber:
 ;* This command actually looks to pass values 0..9 although only 1..5 are      *
 ;* documented in the VFS and LV415 manuals                                     *
 ;*******************************************************************************
-starVP:  jsr     setYeq0
+starVP:  ZEROY
          lda     (zp_vfsv_a8_textptr),Y
          cmp     #$30
          bcc     starVPint  ;if not a number skip forward and send
@@ -594,7 +601,7 @@ starRESET:
 ;* others BRK Bad Parameter                                                    *
 ;*******************************************************************************
 starCHAPTER:
-         jsr     setYeq0
+         ZEROY
          lda     #LV_FCMD_Q_CHAPTER
          sta     WKSP_VFS_E00_TXTBUF
 @diglp:  lda     (zp_vfsv_a8_textptr),Y
@@ -645,8 +652,10 @@ starCHAPTER:
          jsr     FCMD_TextBuf
          bra     FCMD_E1_VideoOn
 
+.ifndef VFS_OPTIMISE
 setYeq0: ldy     #$00                               ; should be inlined as that is shorter and quicker
          rts
+.endif
 
 ; TODO: work out what this is then document
 enableSearchPoll:                                   ; only called from starSEARCH
@@ -660,7 +669,7 @@ enableSearchPoll:                                   ; only called from starSEARC
 ;* *SEARCH <N> - goto frame <N> return immediately                             *
 ;*******************************************************************************
 starSEARCH:
-         jsr     setYeq0
+         ZEROY
          lda     (zp_vfsv_a8_textptr),Y
          jsr     checkDecDigitBrkBadNumber ;check for digit - BRK bad number
          lda     #LV_FCMD_F_TERM_R_HALT
@@ -677,7 +686,7 @@ starSEARCH:
 ;* or calls *FRAME with parameter                                              *
 ;*******************************************************************************
 starSTILL:
-         jsr     setYeq0
+         ZEROY
          lda     (zp_vfsv_a8_textptr),Y
          cmp     #$0d
          bne     starFRAME
@@ -774,7 +783,7 @@ FCMDRET_CheckForOpen:
 ;* 2..50                Does "+" jump forwards <N> when N is s<mode>           *
 ;*******************************************************************************
 starSTEP:
-         jsr     setYeq0
+         ZEROY
          jsr     parse8bitDecA
          cmp     #51
          bcc     @ok        ;<= 50 is ok
@@ -875,7 +884,7 @@ brkBadNumber:
 ;* 3       B1      Ch.1 on    Ch.2 on                                          *
 ;*******************************************************************************
 starAUDIO:
-         jsr     setYeq0
+         ZEROY
          jsr     parse8bitDecA
          cmp     #$04
          bcs     swapP373N933brkBadNumber
@@ -899,7 +908,7 @@ sk:      ora     #$30
 ;* Move at 3*play speed, in direction 0..127 forwards, 128..255 backwards      *
 ;*******************************************************************************
 starFAST:
-         jsr     setYeq0
+         ZEROY
          jsr     parse8bitDecA
          bpl     @rewind
          lda     #LV_FCMD_Z_FastReverse
@@ -915,7 +924,7 @@ starFAST:
 ;* direction                                                                   *
 ;*******************************************************************************
 starSLOW:
-         jsr     setYeq0
+         ZEROY
          lda     #','       ;expect comma separator
          jsr     Parse8bitDecATerminA
          sty     WKSP_VFS_E00_TXTBUF+16 ;stash Y pointer at offset 16
@@ -990,14 +999,14 @@ FCMD_N_then_E1:
 ;* *PLAY [<start>[,<end>]]                                                     *
 ;*******************************************************************************
 starPLAY:
-         jsr     setYeq0
+         ZEROY
          lda     (zp_vfsv_a8_textptr),Y
          cmp     #$0d
          beq     FCMD_N_then_E1 ;no parameter just play
          jsr     parse16BitToYX
          stx     VFS_N937_PlayStart
          sty     VFS_N937_PlayStart+1
-         jsr     setYeq0
+         ZEROY
          jsr     @skip2ndNumber
          jsr     parse16BitToYX
          lda     #LV_FCMD_O_PlayBackwards
@@ -1011,7 +1020,7 @@ starPLAY:
 @Yge:    lda     #LV_FCMD_N_PlayForwards-150
 @Xlt:    pha                ;stash play command
          jsr     starFRAME  ;set starting frame
-         jsr     setYeq0
+         ZEROY
          jsr     @skip2ndNumber
          lda     #LV_FCMD_F_TERM_S_HALT
          jsr     parseDigitsBuildFCMD_F_TermA
@@ -1100,7 +1109,7 @@ LAF4E:   jsr     RestoreZpAndPage9
          .byte   $95
          .asciiz "IRQ already indirected"
 VFSstarMOUSE:
-         jsr     setYeq0
+         ZEROY
          jsr     skipCommaOrSpace
          lda     (zp_vfsv_a8_textptr),Y
          cmp     #$0d
@@ -1151,7 +1160,7 @@ VFSstarMOUSE:
 ; *POINTER 1 - shows pointer (default)
 ; *POINTER 2 - hides pointer and turns off *MOUSE
 VFSstarPOINTER:
-         jsr     setYeq0
+         ZEROY
          jsr     skipCommaOrSpace
          lda     (zp_vfsv_a8_textptr),Y
          cmp     #$0d
@@ -2322,7 +2331,7 @@ parse16bitDecXA:
          rts
 ; *TMAX <x>,<y>
 VFSstarTMAX:
-         jsr     setYeq0
+         ZEROY
          jsr     parse16bitDecXA ;get first parameter
          bcs     restoreP9BrkBadNumber
          phx
@@ -2352,7 +2361,7 @@ restoreP9BrkBadNumber:
          jmp     brkBadNumber
 
 VFSstarTSET:
-         jsr     setYeq0
+         ZEROY
          jsr     parse16bitDecXA
          bcs     restoreP9BrkBadNumber
          phx
