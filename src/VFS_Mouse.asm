@@ -1380,14 +1380,25 @@ Move_Pointer_if_mouse_moved:
          and     #$07
          bne     @LB155
 
-@LB182:  ldy     VFS_N908_MODESAVE
+@LB182:
+.ifdef VFS_OPTIMISE
+.else
+         ldy     VFS_N908_MODESAVE
+.endif
          lda     ZP_EXTR_PTR_B
          and     #$f8
          clc
+.ifdef VFS_OPTIMISE
+         adc     #128 ; LB98A,Y ; Always 128   ( 640)
+         sta     ZP_EXTR_PTR_B
+         lda     ZP_EXTR_PTR_B + 1
+         adc     #2 ; LB98D,Y ; Always 2
+.else
          adc     LB98A,Y ; Always 128   ( 640)
          sta     ZP_EXTR_PTR_B
          lda     ZP_EXTR_PTR_B + 1
          adc     LB98D,Y ; Always 2
+.endif
          sta     ZP_EXTR_PTR_B + 1
          jmp     @LB13D
 
@@ -1530,7 +1541,17 @@ Restore_memory_under_mouse:
          adc     ZP_Previous_mouse_screenptr
          and     #$07
          bne     @LB26D
-@LB288:  ldy     VFS_N908_MODESAVE
+@LB288:
+.ifdef VFS_OPTIMISE
+         lda     ZP_Previous_mouse_screenptr
+         and     #$f8
+         clc
+         adc     #128 ; LB98A,Y ; Always 128   ( 640)
+         sta     ZP_Previous_mouse_screenptr
+         lda     ZP_Previous_mouse_screenptr+1
+         adc     #2 ; LB98D,Y ; Always 2
+.else
+         ldy     VFS_N908_MODESAVE
          lda     ZP_Previous_mouse_screenptr
          and     #$f8
          clc
@@ -1538,6 +1559,7 @@ Restore_memory_under_mouse:
          sta     ZP_Previous_mouse_screenptr
          lda     ZP_Previous_mouse_screenptr+1
          adc     LB98D,Y                ; always 2
+.endif
          sta     ZP_Previous_mouse_screenptr+1
          jmp     @LB258
 
@@ -2567,13 +2589,14 @@ LB965:   .byte   %01111101 ; 125 0x7D
          .byte   %00000001 ; 1
          .byte   %00000010 ; 2
          .byte   %00000100 ; 4
-
+.ifndef VFS_OPTIMSE
 LB98A:   .byte   %10000000  ; this and the next table are always 640 for MODE 0 1 2
          .byte   %10000000
          .byte   %10000000
 LB98D:   .byte   %00000010
          .byte   %00000010
          .byte   %00000010
+.endif
 
 LB990:   .byte   %00000000 ; 0
          .byte   %01000000 ; 64 0x40
@@ -4167,6 +4190,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %11111111
          .byte   %11111111
 ; end of sprite tables
+.ifndef VFS_OPTIMSE
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
@@ -4182,5 +4206,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
-         .byte   "Many thanks to :-  Jonathan Griffiths, Tony Engeham, Chris Tur"
-         .byte   "ner & Huge",$0d
+.endif
+
+         .byte   "Many thanks to :-  Jonathan Griffiths, Tony Engeham, "
+         .byte   "Chris Turner & Huge",$0d

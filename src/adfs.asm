@@ -57,6 +57,8 @@
 		.export CommandExecXY
 		.export ErrorEscapeACKReloadFSM
 		.export ReloadFSMandDIR_ThenBRK
+		.importzp SCSICMD_C8_VENDOR_FCMDRESULT
+        .importzp SCSICMD_1B_STARTSTOPUNIT
 	.endif
 
 ;; TODO:
