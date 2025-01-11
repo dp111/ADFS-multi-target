@@ -96,8 +96,6 @@ L817C:		jsr	SCSI_WaitforReq			; Check SCSI status
  .if .def(HD_SCSI_VFS)
  	.if  (!.def(HD_SCSI_VFS_NO_INVERT))
 		eor	#$FF
- 	.else
-		eor #0
 	.endif
  .endif
 		sta	SCSI_DATA			; Write to SCSI data port
@@ -119,8 +117,6 @@ L819B:		bcs	L81A5				; Jump for Tube read
  .if .def(HD_SCSI_VFS)
  	.if  (!.def(HD_SCSI_VFS_NO_INVERT))
 		eor	#$FF
- 	.else
-		eor #0
 	.endif
  .endif
 		sta	SCSI_DATA			; Write byte to SCSI data port
@@ -180,8 +176,6 @@ L81E8:		lda	($B2),Y
  .if .def(HD_SCSI_VFS)
  	.if  (!.def(HD_SCSI_VFS_NO_INVERT))
 		eor	#$FF
- 	.else
-		eor #0
 	.endif
  .endif
 		sta	SCSI_DATA
@@ -243,8 +237,6 @@ L8233:
  .if .def(HD_SCSI_VFS)
  	.if  (!.def(HD_SCSI_VFS_NO_INVERT))
 		eor	#$FF
- 	.else
-		eor #0
 	.endif
  .endif
 		sta	SCSI_DATA			; Write to SCSI data

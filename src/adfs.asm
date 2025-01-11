@@ -456,8 +456,6 @@ L8083:		jsr	SCSI_GetStatus			; Get SCSI status
  .if .def(HD_SCSI_VFS)
  	.if  (!.def(HD_SCSI_VFS_NO_INVERT))
 		eor	#$FF
- 	.else
-		eor #0
 	.endif
  .endif
 		sta	SCSI_DATA			; Write to SCSI data
@@ -855,8 +853,6 @@ SCSI_send_byteA:
  .if .def(HD_SCSI_VFS)
  	.if  (!.def(HD_SCSI_VFS_NO_INVERT))
 		eor	#$FF
- 	.else
-		eor #0
 	.endif
  .endif
 		sta	SCSI_DATA
@@ -4869,16 +4865,12 @@ L9A75:
  .if .def(HD_SCSI_VFS)
  	.if  (!.def(HD_SCSI_VFS_NO_INVERT))
 		eor	#$FF
- 	.else
-		eor #0
 	.endif
  .endif
 		sta	SCSI_DATA
  .if .def(HD_SCSI_VFS)
  	.if  (!.def(HD_SCSI_VFS_NO_INVERT))
 		eor	#$FF
- 	.else
-		eor #0
 	.endif
  .endif
 .ifdef USE65C12
