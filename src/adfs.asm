@@ -1594,7 +1594,8 @@ L8731:		inc	$B4
 L8737:		rts
 
 ;;
-L8738:		jsr	LA50D
+L8738:
+		jsr	LA50D
 		jsr	L8D79
 		ldy	#$00
 		sty	WKSP_ADFS_2C0
@@ -1804,9 +1805,11 @@ L8865:		pla
 L886D:		jmp	L8760
 
 ;;
-L8870:		jsr	L8738
+L8870:
+		jsr	L8738
 		beq	L886D
-L8875:		jsr	L8738
+L8875:
+		jsr	L8738
 		beq	L8899
 		cmp	#$3A
 		bne	L88EF
@@ -2428,16 +2431,21 @@ HD_CommandPartialSector:
 .endif ; not SCSI2
 
 ;;
-L8BBE:		jsr	L8870
+L8BBE:
+		jsr	L8870
 		beq	L8BCA
 		bne	L8BD2
-L8BC5:		jsr	L8964
+L8BC5:
+		jsr	L8964
 		bne	L8BD2
-L8BCA:		ldy	#$03
+L8BCA:
+		ldy	#$03
 		lda	($B6),Y
 		bmi	L8BC5
-L8BD0:		lda	#$00
-L8BD2:		rts
+L8BD0:
+		lda	#$00
+L8BD2:
+		rts
 ;;
 ;; If name is '^' or '@', Bad name, otherwise Not found.
 ;; -----------------------------------------------------
@@ -2474,24 +2482,29 @@ L8C10:		jsr	L8BBE
 		ldy	#$00				; Point to first byte of directory entry
 		lda	($B6),Y				; Check 'R' bit
 		bpl	L8BFB				; No 'R', jump to error
-L8C1B:		ldy	#$06				; Point to control block
+L8C1B:
+		ldy	#$06				; Point to control block
 		lda	($B8),Y				; Get file/addr flag
 		bne	L8C2E				; <>&00, load to file's address
 		dey					; &00, load to supplied address
-L8C22:		lda	($B8),Y				; Copy load address from control block
+L8C22:
+		lda	($B8),Y				; Copy load address from control block
 		sta	WKSP_ADFS_214,Y
 		dey
 		cpy	#$01
 		bne	L8C22
 		beq	L8C3B
-L8C2E:		ldx	#$04
+L8C2E:
+		ldx	#$04
 		ldy	#$0D
-L8C32:		lda	($B6),Y
+L8C32:
+		lda	($B6),Y
 		sta	WKSP_ADFS_215_DSKOPSAV_RET,X
 		dey
 		dex
 		bne	L8C32
-L8C3B:		lda	#$01
+L8C3B:
+		lda	#$01
 		sta	WKSP_ADFS_215_DSKOPSAV_RET			; Set flag byte to 1
 		lda	#$08
 		sta	WKSP_ADFS_21A_DSKOPSAV_CMD			; Command 'read'
@@ -2499,20 +2512,23 @@ L8C3B:		lda	#$01
 		sta	WKSP_ADFS_21F_DSKOPSAV_CTL
 		ldy	#$16
 		ldx	#$03
-L8C4E:		lda	($B6),Y
+L8C4E:
+		lda	($B6),Y
 		sta	WKSP_ADFS_21A_DSKOPSAV_CMD,X			; Copy sector start
 		iny
 		dex
 		bne	L8C4E
 		ldy	#$15
 		ldx	#$04
-L8C5B:		lda	($B6),Y
+L8C5B:
+		lda	($B6),Y
 		sta	WKSP_ADFS_21F_DSKOPSAV_CTL,X			; Copy length
 		dey
 		dex
 		bne	L8C5B
 		jsr	L8A42
-L8C67:		jsr	L8C6D
+L8C67:
+		jsr	L8C6D
 		jmp	L89D5
 ;;
 L8C6D:		jsr	L9501				; Print info if *OPT1 set
@@ -3079,7 +3095,8 @@ L8F99:		lda	L883C,X				; Copy control block to load '$'
 
 .endif ; !.def(VFS)
 
-L8FE8:		jsr	L8870
+L8FE8:
+		jsr	L8870
 		php
 		pha					; Save registers
 		jsr	L8FF3				; Check loaded FSM
@@ -5505,7 +5522,7 @@ L9B94:
 		lda	SYSVARS_291_ILACE		; get interlace flag
 		beq	VFS_L91B2
 		jmp	swapP373N933brkTurnIlaceOn
-VFS_L91B2:	
+VFS_L91B2:
 		sta	VFS_N93A_SEARCHING_IN_PROGRESS		; clear seraching in progress
 		jsr	swap7PWSP_373_N933
 		plp
@@ -5608,7 +5625,7 @@ L9C10:
 .endif
 
 L9C18:		ldy	#$03				; Copy current context to backup context
-L9C1A:	
+L9C1A:
     	lda	WKSP_ADFS_314,Y
 		sta	WKSP_ADFS_22C_CSD,Y
 		dey
@@ -5753,7 +5770,7 @@ VFS_L92CA:
         rts                                     ; 92CF 60                       `
 .endif
 
-L9C7D:	
+L9C7D:
      	lda	#OSBYTE_EA_RW_TUBEPRESENT
 		jsr	OSBYTEYFFX00
 
@@ -5784,7 +5801,7 @@ L9C8B:		sta	ZP_ADFS_FLAGS
 		bne	L9C9B
 		stx	WKSP_ADFS_26F
 		jsr	LA1A1
-L9C9B:	
+L9C9B:
     	ldy	WKSP_ADFS_100_FSM_S1 + $FD	; Get boot option
 		beq	restoreROMandY_A0rts				; Zero, jump to finish
 		ldx	L9A8F-1,Y			; Get low byte of boot command address
@@ -7486,7 +7503,8 @@ LA42A:		ldy	#$0B
 .endif
 		.byte	$00
 ;;
-LA43F:		lda	#$A5
+LA43F:
+		lda	#$A5				; this can be indirectly jumped below it appears
 		sta	WKSP_ADFS_2A8
 		ldx	#<WKSP_ADFS_2A2
 		ldy	#>WKSP_ADFS_2A2
@@ -7500,17 +7518,20 @@ LA43F:		lda	#$A5
 		bmi	LA45C				; 'E' or 'R' present, run it
 		jmp	L8BFB				; No 'E' or 'R', can't run
 ;;
-LA45C:		jsr	L8C1B
+LA45C:
+		jsr	L8C1B			; load file
 		lda	WKSP_ADFS_2AB
 		cmp	#$FF
 		bne	LA472
 		lda	WKSP_ADFS_2AA
 		cmp	#$FE
 		bcc	LA472
-LA46D:		lda	#$01
+LA46D:
+		lda	#$01
 		jmp	(WKSP_ADFS_2A8)
 ;;
-LA472:		bit	ZP_ADFS_FLAGS			; Get ADFS status byte
+LA472:
+		bit	ZP_ADFS_FLAGS			; Get ADFS status byte
 		bpl	LA46D				; No Tube, enter I/O address
 		jsr	L8032
 		ldx	#<WKSP_ADFS_2A8
@@ -7595,7 +7616,8 @@ LA50D:
 		ldy	#$00
 		clc
 		php
-LA511:		lda	($B4),Y				; Get current character
+LA511:
+		lda	($B4),Y				; Get current character
 		cmp	#$20				; Is it a space?
 		bcc	LA528				; Control character,
 		beq	LA525				; Space,

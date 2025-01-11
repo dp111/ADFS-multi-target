@@ -131,7 +131,7 @@ sheila_ACCON =   $fe34
 ;* This is called at the start of the main service call handler routine before *
 ;* all the ADFS stuff is tried                                                 *
 ;*******************************************************************************
-         .org    $a6f1
+        ; .org    $a6f1
 VFS_ServiceCallsExtra:
          cmp     #SERVICE_15_100Hz_POLL
          bne     @trySvc4
