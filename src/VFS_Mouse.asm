@@ -1354,11 +1354,18 @@ Move_Pointer_if_mouse_moved:
          ldy     ZP_TEMP3
          sta     (ZP_EXTR_PTR_A ),Y            ; store old memory location
          inc     ZP_EXTRA_BASE+1
+
+.ifdef VFS_OPTIMISE
+         and     (ZP_EXTRA_BASE),Y             ; get sprite byte mask
+         dec     ZP_EXTRA_BASE+1
+                                               ; saves 11 cycles and 7 bytes
+.else
          lda     (ZP_EXTRA_BASE),Y             ; get sprite byte mask
          dec     ZP_EXTRA_BASE+1
          ldy     ZP_TEMP2
          and     (ZP_EXTR_PTR_B),Y            ; mask pixels ( surely to the mask the other way around as A had the screen byte
          ldy     ZP_TEMP3
+.endif
          ora     (ZP_EXTRA_BASE),Y  ; or in spite
          ldy     ZP_TEMP2
          sta     (ZP_EXTR_PTR_B),Y            ; save back to screen
@@ -2093,11 +2100,11 @@ Serv15_Poll100Hz:
          plx
 @poh3:   pla
 @poh2:   dey                ;decrement semaphore
-.ifndef VFS_TRIM_REDUNDANT
+.ifndef VFS_OPTIMISE
          cpy     #$00
 .endif
          bne     @poh
-.ifdef VFS_TRIM_REDUNDANT
+.ifdef VFS_OPTIMISE
          tya
 .else
          lda     #$00       ;if we're the last then cancel the service call

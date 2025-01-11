@@ -11,6 +11,7 @@ HD_SCSI_VFS	:=	1
 HD_SCSI_VFS_NO_INVERT := 1 ; Stop normal VFS inverting of data.
 VFS_TRIM_REDUNDANT :=1 ; Remove code that is unreachable
 VFS_BUG_FIX :=  1 		; fix bugs in VFS
+VFS_OPTIMISE := 1		; optimisations  in VFS
 
 CMOS_PER_ROM_BASE = 30  ; fixed CMOS ram address VFS originally has 20
 
