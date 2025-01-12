@@ -1382,8 +1382,14 @@ Move_Pointer_if_mouse_moved:
          lda     ZP_TEMP3
          and     #$0f
          beq     @LB1AE
-         inc     ZP_TEMP2
-         lda     ZP_TEMP2
+         
+         ;iny                   ; 2 cycles
+         ;tya                   ; 2 cycles
+         ;sta ZP_TEMP2          ; 3 cycles
+
+         inc     ZP_TEMP2       ; 5 cycles
+         lda     ZP_TEMP2       ; 3 cycles
+
          clc
          adc     ZP_EXTR_PTR_B
          and     #$07
