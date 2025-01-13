@@ -1185,7 +1185,7 @@ VFSstarPOINTER:
          lda     VFS_0D92_FLAG_POLL100      ; * pointer 1
          beq     LB021
          lda     VFS_N909_MOUSEVISIBLE
-         bne     LB021                      ; if alreadyy shown don't show it again
+         bne     LB021                      ; if already shown don't show it again
          lda     #$ff
          sta     ZP_Previous_mouse_screenptr+1
          jsr     Setup_mouse_pointer_workspace
@@ -1198,6 +1198,10 @@ LB021:   rts
 LB022:   lda     VFS_N909_MOUSEVISIBLE                ; If mouse is already hidden, don't hide it again
          beq     LB021
          stz     VFS_N909_MOUSEVISIBLE
+.ifdef VFS_Pi1MHz_Mouse_Redirect
+         lda     #255
+         sta     MOUSE_REDIRECT+4
+.endif
          lda     sheila_ACCON
          sta     VFS_N932_ACCON_SAVE
          and     #$fb
@@ -1310,18 +1314,28 @@ Move_Pointer_if_mouse_moved:
          sec
          sbc     LB9A0,X                     ; 20, 24, 4, 40
          sta     VFS_N912_MouseX
+.ifdef VFS_Pi1MHz_Mouse_Redirect
+         sta     MOUSE_REDIRECT
+.endif
          lda     VFS_N904_MousePos+1
          sbc     #$00
          sta     VFS_N912_MouseX+1
-
+.ifdef VFS_Pi1MHz_Mouse_Redirect
+         sta     MOUSE_REDIRECT +1
+.endif
          lda     LB9A4,X                     ; 28, 20, 4, 4
          clc
          adc     VFS_N904_MousePos+2
          sta     VFS_N916_MouseY
+.ifdef VFS_Pi1MHz_Mouse_Redirect
+         sta     MOUSE_REDIRECT +2
+.endif
          lda     VFS_N904_MousePos+3
          adc     #$00
          sta     VFS_N916_MouseY+1
-
+.ifdef VFS_Pi1MHz_Mouse_Redirect
+         sta     MOUSE_REDIRECT +3
+.endif
          jsr     LB44C                  ; returns X = 0-3
          ldy     ZP_MOS_CURROM
          lda     SYSVARS_DF0_PWSKPTAB,Y
@@ -1382,14 +1396,14 @@ Move_Pointer_if_mouse_moved:
          lda     ZP_TEMP3
          and     #$0f
          beq     @LB1AE
-         
-         ;iny                   ; 2 cycles
-         ;tya                   ; 2 cycles
-         ;sta ZP_TEMP2          ; 3 cycles
-
+.ifdef VFS_OPTIMISE
+         iny                    ; 2 cycles
+         tya                    ; 2 cycles
+         sta     ZP_TEMP2       ; 3 cycles
+.else
          inc     ZP_TEMP2       ; 5 cycles
          lda     ZP_TEMP2       ; 3 cycles
-
+.endif
          clc
          adc     ZP_EXTR_PTR_B
          and     #$07
@@ -1623,6 +1637,10 @@ ERR_BAD_MODE:
          .asciiz "Bad MODE"
 
 Setup_mouse_pointer_workspace:
+.ifdef VFS_Pi1MHz_Mouse_Redirect
+         and     #$03
+         sta     MOUSE_REDIRECT + 4                           ; set mouse redirector mouse type
+.endif
          sta     VFS_N90B_MOUSE_POINTER_TYPE                  ; Entry a= 0 1 2 , 255 ( effectively 3)
          asl     A
          asl     A
