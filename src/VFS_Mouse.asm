@@ -254,12 +254,18 @@ jmpIndAA:
          jmp     ($00aa)
 
 VFSM_cmdTable:
+.ifdef VFS_OPTIMISE
+strMOUSE:
+.endif
          .byte   "MOUSE"
          .dbyt   VFSstarMOUSE
          .byte   "POINTER"
          .dbyt   VFSstarPOINTER
          .byte   "TMAX"
          .dbyt   VFSstarTMAX
+.ifdef VFS_OPTIMISE
+strTRACKERBALL:
+.endif
          .byte   "TRACKERBALL"
          .dbyt   VFSstarMOUSE
          .byte   "TSET"
@@ -267,11 +273,12 @@ VFSM_cmdTable:
          .byte   $ff        ;table end marker
 strVIDEO:
          .byte   "VIDEO"
+.ifndef VFS_OPTIMISE
 strMOUSE:
          .byte   "MOUSE"
 strTRACKERBALL:
          .byte   "TRACKERBALL"
-
+.endif
 ;*******************************************************************************
 ;* VFS_Serv9_extra                                                             *
 ;*                                                                             *
