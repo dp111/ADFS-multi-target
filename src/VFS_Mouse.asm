@@ -1649,19 +1649,27 @@ Setup_mouse_pointer_workspace:
          sta     MOUSE_REDIRECT + 4                           ; set mouse redirector mouse type
 .endif
          sta     VFS_N90B_MOUSE_POINTER_TYPE                  ; Entry a= 0 1 2 , 255 ( effectively 3)
+.ifdef VFS_OPTIMISE
+         ror    A
+         ROR    A
+         ROR    A
+         and   #$c0
+.else
          asl     A
          asl     A
          asl     A
          asl     A
          asl     A
          asl     A                      ; *64  so we have 0 64 128 192
+.endif
          tay
          lda     VFS_N908_MODESAVE
          cmp     #$03
          bcs     ERR_BAD_MODE                  ; Bad MODE
          pha
-
+.ifndef VFS_OPTIMISE
          clc                                   ; Already clear from BCS above
+.endif
          adc     #>LB9A8                       ; mouse symbol table +  mode*256
          sta     ZP_EXTRA_BASE+1
          lda     #<LB9A8
