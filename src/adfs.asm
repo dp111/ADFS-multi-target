@@ -6046,7 +6046,11 @@ VFS_L9399:
         	lda     $F4                             ; 93DB A5 F4                    ..
         	sta     ($A8),y                         ; 93DD 91 A8                    ..
         	lda     VFS_N923_flag                   ; 93DF AD 23 09                 .#.
-        	bne     VFS_L9420                       ; 93E2 D0 3C                    .<
+.ifndef VFS_BUG_FIX
+        	bne     VFS_L9420                       ; 93E2 D0 3C                    .<   ; This branch surely leaves the stack un balanced BUG ??? and doesn't restore ZP etc
+.else
+			bne 	VFS_serv27_exit
+.endif
         	lda     IRQ1V                           ; 93E4 AD 04 02                 ...
         	sta     VFS_D9D_OLD_IRQ1V               ; 93E7 8D 9D 0D                 ...
         	lda     IRQ1V+1                         ; 93EA AD 05 02                 ...
@@ -6075,9 +6079,24 @@ VFS_L9399:
         	iny                                     ; 9417 C8                       .
         	lda     $F4                             ; 9418 A5 F4                    ..
         	sta     ($A8),y                         ; 941A 91 A8                    ..
+.ifdef VFS_Pi1MHz_Redirect
+			LDA		$FC88			; check if Pi1MHz exists
+			CMP		#$8E
+			BNE     noPi1MHzDetected
+			LDA     #2				; select Screen redirector
+			STA     $FC88
+			JSR	 	$FD03			; call the Screen redirector without text
+noPi1MHzDetected:
+.endif
+
+.ifdef VFS_BUG_FIX
+VFS_serv27_exit:
+.endif
+
         	jsr     RestoreZpAndPage9               ; 941C 20 E3 B1                  ..
         	plp                                     ; 941F 28                       (
-VFS_L9420:  	lda     #$27                            ; 9420 A9 27                    .'
+VFS_L9420:
+			lda     #$27                            ; 9420 A9 27                    .'
         	jmp     L9CF7	                        ; 9422 4C 37 93                 L7.
 .endif
 
