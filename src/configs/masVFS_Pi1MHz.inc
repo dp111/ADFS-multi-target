@@ -14,10 +14,12 @@ VFS_BUG_FIX :=  1 		; fix bugs in VFS
 VFS_OPTIMISE := 1		; optimisations  in VFS
 VFS_Pi1MHz_Mouse_Redirect := 1 ; Enable mouse to appear on the Pi
 VFS_Pi1MHz_Redirect :=1 ; enable screen redirector
+VFS_Pi1MHz :=1
+
 CMOS_PER_ROM_BASE = 30  ; fixed CMOS ram address VFS originally has 20
 
 HDDBASE=$FC40		; VFS controller
-VERBASE=$171		; Master VFS
+VERBASE=$200		; Master VFS
 
 MOUSE_REDIRECT = $FCAB ; Address of Pi mouse redirector
 

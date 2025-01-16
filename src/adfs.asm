@@ -447,17 +447,25 @@ starMOUNTck:
 SCSI_StartCommand:					; SCSIStartCommand_QRYREMOVE
 		ldy	#$00				; Useful place to set Y=0
 SCSI_StartCommand2:
-		lda	#$01
+.ifndef VFS_Pi1MHz
+		lda	#$01			; Host ID ?
 		pha					; Save data value
+.endif
 L8083:		jsr	SCSI_GetStatus			; Get SCSI status
 		and	#$02				; BUSY?
 		bne	L8083				; Loop until not BUSY
+.ifndef VFS_Pi1MHz
 		pla					; Get data value back
+.endif
  .if .def(HD_SCSI_VFS)
  	.if  (!.def(HD_SCSI_VFS_NO_INVERT))
 		eor	#$FF
 	.endif
  .endif
+.if .def(VFS_Pi1MHz)
+		LDA #2					; Host ID
+.endif
+
 		sta	SCSI_DATA			; Write to SCSI data
 		sta	SCSI_SELECT			; Write to SCSI select to strobe it
 L8091:		jsr	SCSI_GetStatus			; Get SCSI status
