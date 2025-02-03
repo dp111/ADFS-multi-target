@@ -1194,7 +1194,7 @@ VFSstarPOINTER:
          lda     VFS_N909_MOUSEVISIBLE
          bne     LB021                      ; if already shown don't show it again
          lda     #$ff
-         sta     ZP_Previous_mouse_screenptr+1
+         sta     ZP_Previous_mouse_screenptr+1 ; Domesday appears endup here when the mouse stops moveing causing a flicker !!!!!
          jsr     Setup_mouse_pointer_workspace
          ldy     VFS_N904_MousePos
          dey
@@ -1335,13 +1335,14 @@ Move_Pointer_if_mouse_moved:
          adc     VFS_N904_MousePos+2
          sta     VFS_N916_MouseY
 .ifdef VFS_Pi1MHz_Mouse_Redirect
-         sta     MOUSE_REDIRECT +2
+         sta     MOUSE_REDIRECT + 2
 .endif
          lda     VFS_N904_MousePos+3
          adc     #$00
          sta     VFS_N916_MouseY+1
 .ifdef VFS_Pi1MHz_Mouse_Redirect
-         sta     MOUSE_REDIRECT +3
+         sta     MOUSE_REDIRECT + 3
+         stx     MOUSE_REDIRECT + 4
 .endif
          jsr     LB44C                  ; returns X = 0-3
          ldy     ZP_MOS_CURROM
@@ -1644,10 +1645,6 @@ ERR_BAD_MODE:
          .asciiz "Bad MODE"
 
 Setup_mouse_pointer_workspace:
-.ifdef VFS_Pi1MHz_Mouse_Redirect
-         and     #$03
-         sta     MOUSE_REDIRECT + 4                           ; set mouse redirector mouse type
-.endif
          sta     VFS_N90B_MOUSE_POINTER_TYPE                  ; Entry a= 0 1 2 , 255 ( effectively 3)
 .ifdef VFS_OPTIMISE
          ror    A
@@ -3539,6 +3536,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
+
          .byte   %11000000
          .byte   %00000000
          .byte   %00000000
@@ -3555,6 +3553,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
+
          .byte   %11111111
          .byte   %00001111
          .byte   %00000011
@@ -3571,6 +3570,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %00000000
          .byte   %00000000
          .byte   %11000011
+
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
@@ -3604,6 +3604,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
+
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
@@ -3620,6 +3621,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %11000000
          .byte   %11000000
          .byte   %11110000
+
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
@@ -3636,6 +3638,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %00111111
          .byte   %00111111
          .byte   %11111111
+
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
@@ -3669,6 +3672,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %11111100
          .byte   %11111100
          .byte   %11111111
+
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
@@ -3685,6 +3689,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %00000011
          .byte   %00000011
          .byte   %00001111
+
          .byte   %11110000
          .byte   %11000000
          .byte   %00000000
@@ -3701,6 +3706,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
+
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
@@ -3734,6 +3740,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %11101110
          .byte   %11101110
          .byte   %11111111
+
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
@@ -3750,6 +3757,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %00000000
          .byte   %00000000
          .byte   %11111111
+
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
@@ -3766,6 +3774,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
+
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
@@ -3799,6 +3808,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
+
          .byte   %10001000
          .byte   %00000000
          .byte   %00000000
@@ -3815,6 +3825,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
+
          .byte   %11111111
          .byte   %00110011
          .byte   %00010001
@@ -3831,6 +3842,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %00000000
          .byte   %00000000
          .byte   %10011001
+
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
@@ -3864,6 +3876,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
+
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
@@ -3880,6 +3893,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %10001000
          .byte   %10001000
          .byte   %11001100
+
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
@@ -3896,6 +3910,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %01110111
          .byte   %01110111
          .byte   %11111111
+
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
@@ -3929,6 +3944,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %11101110
          .byte   %11101110
          .byte   %11111111
+
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
@@ -3945,6 +3961,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %00010001
          .byte   %00010001
          .byte   %00110011
+
          .byte   %11001100
          .byte   %10001000
          .byte   %00000000
@@ -3961,6 +3978,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
+
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
@@ -3994,6 +4012,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
+
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
@@ -4010,6 +4029,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %00000000
          .byte   %00000000
          .byte   %11111111
+
          .byte   %01010101
          .byte   %01010101
          .byte   %01010101
@@ -4026,6 +4046,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %01010101
          .byte   %01010101
          .byte   %11111111
+
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
@@ -4059,6 +4080,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
+
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
@@ -4075,6 +4097,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %10101010
          .byte   %10101010
          .byte   %11111111
+
          .byte   %11111111
          .byte   %01010101
          .byte   %01010101
@@ -4091,6 +4114,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %00000000
          .byte   %00000000
          .byte   %01010101
+
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
@@ -4124,6 +4148,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
+
          .byte   %11111111
          .byte   %01010101
          .byte   %01010101
@@ -4140,6 +4165,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %10101010
          .byte   %10101010
          .byte   %11111111
+
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
@@ -4156,6 +4182,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %00000000
          .byte   %00000000
          .byte   %01010101
+
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
@@ -4189,6 +4216,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %00000000
          .byte   %00000000
          .byte   %10101010
+
          .byte   %11111111
          .byte   %10101010
          .byte   %10101010
@@ -4205,6 +4233,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %01010101
          .byte   %01010101
          .byte   %11111111
+
          .byte   %00000000
          .byte   %00000000
          .byte   %00000000
@@ -4221,6 +4250,7 @@ LBCA8:                               ; mouse pointer mask table
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
+
          .byte   %11111111
          .byte   %11111111
          .byte   %11111111
