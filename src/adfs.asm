@@ -463,7 +463,7 @@ L8083:		jsr	SCSI_GetStatus			; Get SCSI status
 	.endif
  .endif
 .if .def(VFS_Pi1MHz)
-		LDA #2					; Host ID
+		LDA #16					; Host ID
 .endif
 
 		sta	SCSI_DATA			; Write to SCSI data
