@@ -1161,6 +1161,11 @@ VFSstarMOUSE:
          sta     VFS_N900_MouseBounds+2
          sta     VFS_N900_MouseBounds+3
          rts
+
+.ifdef VFS_Pi1MHz_Mouse_Redirect
+highnibbletable:
+         .byte   0<<4,1<<4,2<<4,3<<4
+.endif
 ; *POINTER (0/1/2)
 ; ----------------
 ; *POINTER 0 - hides pointer
@@ -1341,8 +1346,8 @@ Move_Pointer_if_mouse_moved:
          adc     #$00
          sta     VFS_N916_MouseY+1
 .ifdef VFS_Pi1MHz_Mouse_Redirect
+         ora     highnibbletable,X
          sta     MOUSE_REDIRECT + 3
-         stx     MOUSE_REDIRECT + 4
 .endif
          jsr     LB44C                  ; returns X = 0-3
          ldy     ZP_MOS_CURROM

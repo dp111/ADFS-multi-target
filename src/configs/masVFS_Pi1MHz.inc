@@ -21,7 +21,7 @@ CMOS_PER_ROM_BASE = 30  ; fixed CMOS ram address VFS originally has 20
 HDDBASE=$FC40		; VFS controller
 VERBASE=$200		; Master VFS
 
-MOUSE_REDIRECT = $FCAB ; Address of Pi mouse redirector
+MOUSE_REDIRECT = $FCAC ; Address of Pi mouse redirector
 
 USE65C12	:=	1		; use 65C12 opcodes
 		.pc02		; USE65C12
