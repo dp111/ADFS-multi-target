@@ -105,7 +105,14 @@ VFS_N916_MouseY =$0916 ; 16 bit Y
 
 VFS_N924_PTR_Q = $0924
 VFS_N926_ZPSAVE = $0926
+.ifdef VFS_Pi1MHz_Mouse_Redirect
+VFS_N927_USB_BUTTONS = $0927 ; USB mouse buttons held, in this device's button bits
+VFS_N928_USB_LATCH = $0928 ; 4 bytes: &FCAC-&FCAF as last read
+VFS_N92C_USB_REM = $092c ; X (+0) and Y (+2) movement below one step of 4
+; 92D, 92F-931 unused
+.else
 ; 927-931 unused
+.endif
 VFS_N932_ACCON_SAVE = $0932
 
 VFS_N933_BASE = $0933
@@ -1133,6 +1140,11 @@ VFSstarMOUSE:
          bne     LAF4E
          stx     VFS_N90D_MOUSE_BUTTON_STILL_ACTIVE                     ; X = 0
          stx     VFS_N909_MOUSEVISIBLE
+.ifdef VFS_Pi1MHz_Mouse_Redirect
+         stx     VFS_N927_USB_BUTTONS
+         lda     MOUSE_REDIRECT+3           ; twice: drop what the USB mouse did
+         lda     MOUSE_REDIRECT+3           ; before *MOUSE
+.endif
          dex
          stx     VFS_0D92_FLAG_POLL100      ; X = 255
          stx     VFS_N90A_MOUSE_TYPE
@@ -2023,6 +2035,9 @@ OSBYTE_Extended_Vectorcode:
          jsr     swapPage9AndPrivWkspP3
          jsr     Get_Pointer_TypeX
          lda     sheila_USRVIA_orb
+.ifdef VFS_Pi1MHz_Mouse_Redirect
+         jsr     UsbMouse_Buttons
+.endif
          cpx     #$00
          beq     @LB542         ; If &00, buttons in b0-b3
          rol     A              ; Move buttons from b5-b6 into b0-b3
@@ -2163,6 +2178,9 @@ Serv15_Poll100Hz:
          phx
          phy
          jsr     PreserveZpAndPage9
+.ifdef VFS_Pi1MHz_Mouse_Redirect
+         jsr     UsbMouse_Read          ; A USB mouse on the Pi moves the pointer too
+.endif
          jsr     LB67E                  ; Insert keypress if button state has changed
          lda     VFS_N909_MOUSEVISIBLE
          beq     @poh4
@@ -2206,6 +2224,9 @@ Get_Pointer_TypeX:   ldx     VFS_N90A_MOUSE_TYPE
 ;Check if button state has changed
 LB67E:   jsr     Get_Pointer_TypeX  ; Get device type to X
          lda     sheila_USRVIA_orb  ; Get buttons
+.ifdef VFS_Pi1MHz_Mouse_Redirect
+         jsr     UsbMouse_Buttons
+.endif
          and     @LB6C7,X           ; Mask with button position for this device
          cmp     VFS_N90D_MOUSE_BUTTON_STILL_ACTIVE
          beq     @LB698             ; Button state is the same
@@ -2258,6 +2279,105 @@ LB6CC:   .byte   $08            ; Ydir
 
          .byte   $04
          .byte   $01
+
+.ifdef VFS_Pi1MHz_Mouse_Redirect
+; A USB mouse on the Pi (Pi1MHz, usb_mode=host) works alongside the user port
+; mouse.  &FCAC-&FCAF hold its movement since the previous read as 14-bit two's
+; complement, X then Y (up is positive), with the buttons in the top bits:
+;   &FCAD b6 left, b7 right; &FCAF b6 middle, b7 a mouse is there.
+; Reading &FCAF hands the next movement over, so the four are read in order.
+; A Pi1MHz without a USB mouse (or too old to have one) leaves &FCAF b7 clear.
+; One count of movement is one graphics unit; the user port's step of 4 is
+; kept by carrying what is left over to the next read.
+; Called with page 9 swapped in.
+UsbMouse_Read:
+         ldx     #$00
+@lp:     lda     MOUSE_REDIRECT,X
+         sta     VFS_N928_USB_LATCH,X
+         inx
+         cpx     #$04
+         bne     @lp
+         jsr     Get_Pointer_TypeX
+         lda     #$00
+         bit     VFS_N928_USB_LATCH+3
+         bmi     @mouse
+         sta     VFS_N927_USB_BUTTONS   ; no USB mouse
+         rts
+
+@mouse:  bit     VFS_N928_USB_LATCH+1
+         bvc     @n1
+         ora     LB6CB-3,X              ; left is button 1
+@n1:     bit     VFS_N928_USB_LATCH+1
+         bpl     @n3
+         ora     LB6CB-1,X              ; right is button 3
+@n3:     bit     VFS_N928_USB_LATCH+3
+         bvc     @n2
+         ora     LB6CB-2,X              ; middle is button 2
+@n2:     sta     VFS_N927_USB_BUTTONS
+         ldx     #$00
+         jsr     @axis
+         ldx     #$02
+@axis:   lda     VFS_N928_USB_LATCH+1,X
+         and     #$3f
+         cmp     #$20                   ; sign-extend the 14 bits
+         bcc     @pos
+         ora     #$c0
+@pos:    sta     VFS_N928_USB_LATCH+1,X
+         lda     VFS_N92C_USB_REM,X
+         and     #$03
+         clc
+         adc     VFS_N928_USB_LATCH,X
+         sta     VFS_N928_USB_LATCH,X
+         bcc     @add
+         inc     VFS_N928_USB_LATCH+1,X
+@add:    clc
+         lda     VFS_N904_MousePos,X
+         adc     VFS_N928_USB_LATCH,X
+         sta     VFS_N904_MousePos,X
+         lda     VFS_N904_MousePos+1,X
+         adc     VFS_N928_USB_LATCH+1,X
+         ldy     VFS_N928_USB_LATCH+1,X
+         bpl     @up
+         bcs     @store                 ; moved left/down, still on the screen
+         lda     #$00
+         sta     VFS_N904_MousePos,X
+         bra     @store
+@up:     cmp     UsbMouse_MaxHi,X       ; the user port's limits: &4FC, &3FC
+         bcc     @store
+         bne     @max
+         ldy     VFS_N904_MousePos,X
+         cpy     #$fd
+         bcc     @store
+@max:    lda     #$fc
+         sta     VFS_N904_MousePos,X
+         lda     UsbMouse_MaxHi,X
+@store:  sta     VFS_N904_MousePos+1,X
+         lda     VFS_N904_MousePos,X
+         and     #$03
+         sta     VFS_N92C_USB_REM,X
+         eor     VFS_N904_MousePos,X
+         sta     VFS_N904_MousePos,X
+         rts
+
+UsbMouse_MaxHi:
+         .byte   $04, $00, $03
+
+; A = user port B; pull the USB mouse's held buttons low in it too, as if
+; pressed on the user port mouse.  X and Y kept.  Page 9 swapped in.
+UsbMouse_Buttons:
+         bit     VFS_0D92_FLAG_POLL100  ; held buttons are only kept under *MOUSE
+         bpl     @rts
+         pha
+         lda     VFS_N927_USB_BUTTONS
+         eor     #$ff
+         phx
+         tsx
+         and     $0102,X
+         sta     $0102,X
+         plx
+         pla
+@rts:    rts
+.endif
 
 swapZPEXTRA6with904:
          ldy     #$06
