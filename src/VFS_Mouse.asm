@@ -56,6 +56,10 @@ SCSICMD_CA_VENDOR_FCMD = $ca ;Philips LV Vendor command to send F command
 OSBYTE_DB_RW_TABCODE = $db
 LV_FCMD_N_PlayForwards = $e4 ;F command - N - play forwards
 VFS_PWSKP_373_SAVE_N933 = $0373 ;8 bytes saved from N933
+; Private workspace page 3: &00-&3F screen under the pointer, &40-&72 page 9,
+; &73-&7A N933 - the rest is free.  (Page 9's &926-&932 is the zero page
+; save, not free.)
+VFS_PWSKP_37B_USB_BUTTONS = $037B ;USB mouse buttons held, in this device's button bits
 
 LV_FCMD_2B_JUMP_FWD = $2b   ;F command - jump forward +YY tracks
 LV_FCMD_2D_JUMP_BACK = $2d  ;F command - -YY jump back YY tracks
@@ -105,14 +109,7 @@ VFS_N916_MouseY =$0916 ; 16 bit Y
 
 VFS_N924_PTR_Q = $0924
 VFS_N926_ZPSAVE = $0926
-.ifdef VFS_Pi1MHz_Mouse_Redirect
-VFS_N927_USB_BUTTONS = $0927 ; USB mouse buttons held, in this device's button bits
-VFS_N928_USB_LATCH = $0928 ; 4 bytes: &FCAC-&FCAF as last read
-VFS_N92C_USB_REM = $092c ; X (+0) and Y (+2) movement below one step of 4
-; 92D, 92F-931 unused
-.else
 ; 927-931 unused
-.endif
 VFS_N932_ACCON_SAVE = $0932
 
 VFS_N933_BASE = $0933
@@ -1141,7 +1138,9 @@ VFSstarMOUSE:
          stx     VFS_N90D_MOUSE_BUTTON_STILL_ACTIVE                     ; X = 0
          stx     VFS_N909_MOUSEVISIBLE
 .ifdef VFS_Pi1MHz_Mouse_Redirect
-         stx     VFS_N927_USB_BUTTONS
+         jsr     UsbMouse_Wksp              ; no USB buttons held yet
+         lda     #$00
+         sta     (ZP_EXTRA_BASE),Y
          lda     MOUSE_REDIRECT+3           ; twice: drop what the USB mouse did
          lda     MOUSE_REDIRECT+3           ; before *MOUSE
 .endif
@@ -2287,56 +2286,52 @@ LB6CC:   .byte   $08            ; Ydir
 ;   &FCAD b6 left, b7 right; &FCAF b6 middle, b7 a mouse is there.
 ; Reading &FCAF hands the next movement over, so the four are read in order.
 ; A Pi1MHz without a USB mouse (or too old to have one) leaves &FCAF b7 clear.
-; One count of movement is one graphics unit; the user port's step of 4 is
-; kept by carrying what is left over to the next read.
-; Called with page 9 swapped in.
+; The movement is in graphics units and always a multiple of 4, the user
+; port's step - the Pi keeps the rest for the next read.
+; Called from the poll: page 9 swapped in, ZP_EXTRA_BASE.. saved, so the four
+; bytes are read into ZP_TEMP.. as scratch.
 UsbMouse_Read:
          ldx     #$00
 @lp:     lda     MOUSE_REDIRECT,X
-         sta     VFS_N928_USB_LATCH,X
+         sta     ZP_TEMP,X
          inx
          cpx     #$04
          bne     @lp
          jsr     Get_Pointer_TypeX
          lda     #$00
-         bit     VFS_N928_USB_LATCH+3
-         bmi     @mouse
-         sta     VFS_N927_USB_BUTTONS   ; no USB mouse
-         rts
-
-@mouse:  bit     VFS_N928_USB_LATCH+1
+         bit     ZP_TEMP+3
+         bpl     @btn                   ; no USB mouse: no buttons
+         bit     ZP_TEMP+1
          bvc     @n1
          ora     LB6CB-3,X              ; left is button 1
-@n1:     bit     VFS_N928_USB_LATCH+1
+@n1:     bit     ZP_TEMP+1
          bpl     @n3
          ora     LB6CB-1,X              ; right is button 3
-@n3:     bit     VFS_N928_USB_LATCH+3
-         bvc     @n2
+@n3:     bit     ZP_TEMP+3
+         bvc     @btn
          ora     LB6CB-2,X              ; middle is button 2
-@n2:     sta     VFS_N927_USB_BUTTONS
+@btn:    pha
+         jsr     UsbMouse_Wksp
+         pla
+         sta     (ZP_EXTRA_BASE),Y
+         bit     ZP_TEMP+3
+         bpl     @rts
          ldx     #$00
          jsr     @axis
          ldx     #$02
-@axis:   lda     VFS_N928_USB_LATCH+1,X
+@axis:   lda     ZP_TEMP+1,X
          and     #$3f
          cmp     #$20                   ; sign-extend the 14 bits
          bcc     @pos
          ora     #$c0
-@pos:    sta     VFS_N928_USB_LATCH+1,X
-         lda     VFS_N92C_USB_REM,X
-         and     #$03
+@pos:    sta     ZP_TEMP+1,X
          clc
-         adc     VFS_N928_USB_LATCH,X
-         sta     VFS_N928_USB_LATCH,X
-         bcc     @add
-         inc     VFS_N928_USB_LATCH+1,X
-@add:    clc
          lda     VFS_N904_MousePos,X
-         adc     VFS_N928_USB_LATCH,X
+         adc     ZP_TEMP,X
          sta     VFS_N904_MousePos,X
          lda     VFS_N904_MousePos+1,X
-         adc     VFS_N928_USB_LATCH+1,X
-         ldy     VFS_N928_USB_LATCH+1,X
+         adc     ZP_TEMP+1,X
+         ldy     ZP_TEMP+1,X
          bpl     @up
          bcs     @store                 ; moved left/down, still on the screen
          lda     #$00
@@ -2352,30 +2347,48 @@ UsbMouse_Read:
          sta     VFS_N904_MousePos,X
          lda     UsbMouse_MaxHi,X
 @store:  sta     VFS_N904_MousePos+1,X
-         lda     VFS_N904_MousePos,X
-         and     #$03
-         sta     VFS_N92C_USB_REM,X
-         eor     VFS_N904_MousePos,X
-         sta     VFS_N904_MousePos,X
-         rts
+@rts:    rts
 
 UsbMouse_MaxHi:
          .byte   $04, $00, $03
 
+; ZP_EXTRA_BASE -> the USB buttons byte in our private workspace, Y = 0.
+UsbMouse_Wksp:
+         ldy     ZP_MOS_CURROM
+         lda     SYSVARS_DF0_PWSKPTAB,Y
+         clc
+         adc     #>VFS_PWSKP_37B_USB_BUTTONS
+         sta     ZP_EXTRA_BASE+1
+         lda     #<VFS_PWSKP_37B_USB_BUTTONS
+         sta     ZP_EXTRA_BASE
+         ldy     #$00
+         rts
+
 ; A = user port B; pull the USB mouse's held buttons low in it too, as if
-; pressed on the user port mouse.  X and Y kept.  Page 9 swapped in.
+; pressed on the user port mouse.  X, Y and ZP_EXTRA_BASE kept.
 UsbMouse_Buttons:
          bit     VFS_0D92_FLAG_POLL100  ; held buttons are only kept under *MOUSE
          bpl     @rts
-         pha
-         lda     VFS_N927_USB_BUTTONS
-         eor     #$ff
          phx
+         phy
+         pha
+         lda     ZP_EXTRA_BASE+1
+         pha
+         lda     ZP_EXTRA_BASE
+         pha
+         jsr     UsbMouse_Wksp
+         lda     (ZP_EXTRA_BASE),Y
+         eor     #$ff
          tsx
-         and     $0102,X
-         sta     $0102,X
-         plx
+         and     $0103,X                ; the port B value pushed above
+         sta     $0103,X
          pla
+         sta     ZP_EXTRA_BASE
+         pla
+         sta     ZP_EXTRA_BASE+1
+         pla
+         ply
+         plx
 @rts:    rts
 .endif
 
