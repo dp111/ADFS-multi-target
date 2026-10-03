@@ -179,7 +179,11 @@ L8000:		.byte	$00,$00,$00			; No language entry
 		.byte	$82				; Service ROM, 6502 code
 		.byte	L8017-L8000			; Offset to (C) string
 .ifdef HD_SCSI_VFS
+.ifdef VFS_Pi1MHz
+		.byte	2				; Pi1MHz VFS 2.01
+.else
 		.byte	1
+.endif
 .else
 		.byte	VERSION & $FF			; Binary version number
 .endif
