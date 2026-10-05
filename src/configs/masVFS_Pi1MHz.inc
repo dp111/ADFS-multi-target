@@ -19,7 +19,7 @@ VFS_Pi1MHz :=1
 CMOS_PER_ROM_BASE = 30  ; fixed CMOS ram address VFS originally has 20
 
 HDDBASE=$FC40		; VFS controller
-VERBASE=$201		; Pi1MHz VFS: 2.00 + the Pi's mouse redirect, VDU redirect, USB mouse
+VERBASE=$202		; Pi1MHz VFS: 2.00 + the Pi's mouse redirect, VDU redirect, USB mouse
 
 MOUSE_REDIRECT = $FCAC ; Address of Pi mouse redirector
 

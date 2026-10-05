@@ -1222,8 +1222,8 @@ LB022:   lda     VFS_N909_MOUSEVISIBLE                ; If mouse is already hidd
          beq     LB021
          stz     VFS_N909_MOUSEVISIBLE
 .ifdef VFS_Pi1MHz_Mouse_Redirect
-         lda     #255
-         sta     MOUSE_REDIRECT+4
+         lda     #$F0                       ; pointer type 15 = off: the type lives in the top
+         sta     MOUSE_REDIRECT+3           ; of the last position byte, and writing it completes one
 .endif
          lda     sheila_ACCON
          sta     VFS_N932_ACCON_SAVE
